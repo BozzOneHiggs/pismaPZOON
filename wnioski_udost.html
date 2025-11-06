@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ZMIANA TYTUŁU -->
+    <title>Drukowanie Kopert i Odpowiedzi</title> 
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
+    <style>
+        /* GLOBAL FONT: Roboto */
+        body, input, button, select, textarea { 
+            font-family: 'Roboto', sans-serif;
+            /* ZAPEWNIENIE WIELKICH LITER W POLACH TEKSTOWYCH ORAZ PODGLĄDZIE */
+            text-transform: uppercase; 
+        }
+        
+        /* Specjalna klasa do wyłączania UPPERCASE */
+        .no-uppercase {
+            text-transform: none;
+        }
+
+
+        #envelope {
+            aspect-ratio: 162 / 114;
+            width: 100%;
+            max-width: 450px; 
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box; 
+            border: 1px solid #ccc; /* WIDOCZNE TYLKO NA PODGLĄDZIE */
+        }
+        
+        #addressBlock > div {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-weight: inherit; /* Dziedziczenie wagi */
+        }
+
+        #previewNumerSprawy {
+            font-size: inherit; 
+            font-weight: inherit; 
+            color: inherit; 
+        }
+        
+        /* --- NOWE STYLE DLA PANELU USTAWIEŃ SLIDE-IN --- */
+        #settings-section-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: min(90vw, 400px); 
+            height: 100vh;
+            background-color: #fefcbf; 
+            z-index: 50; 
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            transform: translateX(-100%); 
+            transition: transform 0.3s ease-in-out;
+            padding: 2rem;
+            overflow-y: auto; 
+        }
+
+        #settings-section-container.active {
+            transform: translateX(0); 
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            display: none;
+        }
+
+        #overlay.active {
+            display: block;
+        }
+        
+        .settings-heading {
+             background-color: #fce79f; 
+             padding: 0.5rem;
+             border-radius: 0.375rem;
+             margin-top: 1rem;
+        }
+
+        /* --- NOWE STYLE DLA ZAKŁADEK --- */
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-bottom-width: 4px;
+            border-color: transparent;
+            color: #4b5563; /* text-gray-600 */
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            color: #3b82f6; /* text-blue-600 */
+            border-color: #3b82f6; /* border-blue-600 */
+        }
+        .tab-button:hover:not(.active) {
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-8">
+
+    <div id="overlay" onclick="document.getElementById('toggleSettingsButton').click()"></div>
+
+    <!-- Panel Ustawień (bez zmian) -->
+    <div id="settings-section-container" class="space-y-6">
+        <div class="bg-yellow-50 p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+            <h2 class="text-2xl font-bold mb-4 text-yellow-800 flex justify-between items-center">
+                USTAWIENIA DRUKU I POZYCJI
+                <button id="closeSettingsButton" class="text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </h2>
+            <div id="settingsMessageArea" class="h-6 text-sm font-medium text-red-600 mb-2"></div>
+            
+            <div class="grid grid-cols-3 gap-4">
+                
+                <div class="col-span-3 text-lg font-semibold border-b border-yellow-200 pb-2 mb-2 text-yellow-700 settings-heading">CZCIONKA I SPACING (GLOBALNIE)</div>
+                
+                <div class="col-span-1">
+                    <label for="fontSize" class="block text-xs font-medium text-gray-700">ROZMIAR (PT)</label>
+                    <input type="number" step="1" min="8" max="24" id="fontSize" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+
+                <div class="col-span-1">
+                    <label for="lineHeight" class="block text-xs font-medium text-gray-700">INTERLINIA (EM)</label>
+                    <input type="number" step="0.1" min="0.8" max="2.0" id="lineHeight" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+
+                <div class="col-span-1">
+                    <label for="fontWeight" class="block text-xs font-medium text-gray-700">WAGA</label>
+                    <select id="fontWeight" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                        <option value="400">NORMALNA</option>
+                        <option value="700">POGRUBIONA</option>
+                    </select>
+                </div>
+                
+                <div class="col-span-3 text-lg font-semibold border-b border-yellow-200 pt-4 pb-2 mb-2 text-yellow-700 settings-heading">POZYCJA NA KOPERCIE (MM)</div>
+
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">NUMER SPRAWY (MM)</div>
+                <div class="col-span-2">
+                    <label for="numSprawyTop" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="numSprawyTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="numSprawyLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="numSprawyLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">ADRES - POZYCJA CENTRALNA (%)</div>
+                <div class="col-span-2">
+                    <label for="addressTop" class="block text-xs font-medium text-gray-700">POCZĄTEK BLOKU (%)</label>
+                    <input type="number" step="1" min="0" max="100" id="addressTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="addressLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (%)</label>
+                    <input type="number" step="1" min="0" max="100" id="addressLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+
+                <div class="col-span-3 text-lg font-semibold border-b border-yellow-200 pt-4 pb-2 mb-2 text-yellow-700 settings-heading">POZYCJA NA POTWIERDZENIU (MM)</div>
+                
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">ADRESAT (GÓRA ZWROTKI)</div>
+                <div class="col-span-2">
+                    <label for="recAdresatTop" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresatTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recAdresatLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresatLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">ADRES L.1 (LUB PUSTY WIERSZ)</div>
+                <div class="col-span-2">
+                    <label for="recAdresCz1Top" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresCz1Top" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recAdresCz1Left" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresCz1Left" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">ADRES L.2</div>
+                <div class="col-span-2">
+                    <label for="recAdresCz2Top" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresCz2Top" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recAdresCz2Left" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="recAdresCz2Left" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">KOD POCZTOWY / POCZTA</div>
+                <div class="col-span-2">
+                    <label for="recKodPocztaTop" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="recKodPocztaTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recKodPocztaLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="recKodPocztaLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                
+                <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">NUMER SPRAWY (DÓŁ ZWROTKI)</div>
+                <div class="col-span-2">
+                    <label for="recNumSprawyTop" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="100" id="recNumSprawyTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recNumSprawyLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</label>
+                    <input type="number" step="1" min="0" max="100" id="recNumSprawyLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+
+                 <div class="col-span-3 font-medium text-sm text-yellow-800 pt-2">UWAGI (DÓŁ ZWROTKI)</div>
+                <div class="col-span-2">
+                    <label for="recUwagiTop" class="block text-xs font-medium text-gray-700">OD GÓRY (TOP)</label>
+                    <input type="number" step="1" min="0" max="250" id="recUwagiTop" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                <div class="col-span-1">
+                    <label for="recUwagiLeft" class="block text-xs font-medium text-gray-700">OD LEWEJ (LEFT)</LAbel>
+                    <input type="number" step="1" min="0" max="100" id="recUwagiLeft" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500">
+                </div>
+                
+            </div>
+            <button id="saveSettingsButton" class="w-full mt-4 bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700 transition-colors shadow-lg">ZAPISZ USTAWIENIA</button>
+        </div>
+    </div>
+
+
+    <!-- Ekran Logowania (bez zmian) -->
+    <div id="authContainer" class="max-w-md mx-auto bg-white rounded-lg shadow-xl p-8 mt-16">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">LOGOWANIE DO GENERATORA</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <label for="loginEmail" class="block text-sm font-medium text-gray-700">EMAIL</label>
+                <input type="email" id="loginEmail" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+            <div>
+                <label for="loginPassword" class="block text-sm font-medium text-gray-700">HASŁO</label>
+                <input type="password" id="loginPassword" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+
+            <div id="authMessageArea" class="h-6 text-sm font-medium text-red-600 text-center"></div>
+
+            <div class="flex space-x-4 pt-2">
+                <button id="loginButton" class="w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">ZALOGUJ</button>
+                <button id="registerButton" class="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors">ZAREJESTRUJ</button>
+            </div>
+            <div class="pt-2">
+                 <button id="anonymousLoginButton" class="w-full bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm">KONTYNUUJ ANONIMOWO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Główny Kontener Aplikacji -->
+    <div id="appContainer" class="hidden">
+        
+        <!-- Pasek użytkownika i wylogowanie (bez zmian) -->
+        <div class="max-w-6xl mx-auto mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow-md">
+            <div>
+                <span class="text-sm text-gray-600">ZALOGOWANO JAKO:</span>
+                <span id="userEmailDisplay" class="font-medium text-gray-900"></span>
+            </div>
+            <button id="logoutButton" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors text-sm">WYLOGUJ</button>
+        </div>
+
+        <!-- ZMIANA NAZWY ZAKŁADKI: -->
+        <div class="max-w-6xl mx-auto bg-white rounded-t-lg shadow-md">
+            <nav class="flex border-b border-gray-200">
+                <button id="tabButtonEnvelopes" class="tab-button active">
+                    GENERATOR KOPERT
+                </button>
+                <button id="tabButtonSupport" class="tab-button">
+                    ODPOWIEDŹ NA WNIOSKI
+                </button>
+            </nav>
+        </div>
+
+        <!-- 1. ZAWARTOŚĆ ZAKŁADKI: GENERATOR KOPERT (Bez zmian) -->
+        <div id="envelopeGeneratorTab" class="">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
+                
+                <div id="preview-section" class="order-1 lg:order-1 space-y-4">
+                    <h1 class="text-3xl font-bold text-gray-800 hidden lg:block">GENERATOR KOPERT C6 (162X114MM)</h1>
+                    <div id="preview-container" class="bg-white p-6 rounded-lg shadow-2xl flex justify-center items-center lg:items-start print:shadow-none print:p-0">
+                        <div id="envelope" class="bg-white p-4 shadow-xl">
+                            <div id="previewNumerSprawy" class="absolute" style="left: 15mm; top: 15mm;"></div>
+
+                            <div id="addressBlock" class="text-left absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+                                <div id="previewAdresat" class="whitespace-nowrap"></div>
+                                <div id="previewAdresCz1" class="whitespace-nowrap"></div>
+                                <div id="previewAdresCz2" class="whitespace-nowrap"></div>
+                                <div id="previewKodPoczta" class="tracking-widest whitespace-nowrap"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center lg:text-left">
+                         <button id="toggleSettingsButton" class="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600 transition-colors shadow-lg">POKAŻ / UKRYJ USTAWIENIA DRUKU</button>
+                    </div>
+                </div>
+
+                
+                <div id="controls" class="order-2 lg:order-2 space-y-6">
+                    <h1 class="text-3xl font-bold text-gray-800 block lg:hidden">GENERATOR KOPERT C6 (162X114MM)</h1>
+                
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-semibold mb-4">WYSZUKAJ SPRAWĘ (POJEDYNCZO)</h2>
+                        <div class="flex space-x-2">
+                            <input type="text" id="searchNumerSprawy" placeholder="Wpisz numer sprawy..." class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+                            <button id="searchButton" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">SZUKAJ</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-md space-y-4" id="envelopeForm">
+                        <h2 class="text-xl font-semibold mb-4">WPROWADŹ DANE</h2>
+                        
+                        <button id="copySupportAddressButton" class="w-full bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700 transition-colors text-sm">
+                            SKOPIUJ ADRES Z ZAKŁADKI ODPOWIEDZI
+                        </button>
+
+                        <div>
+                            <label for="numer_sprawy" class="block text-sm font-medium text-gray-700">NUMER SPRAWY</label>
+                            <input type="text" id="numer_sprawy" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+                        
+                        <div>
+                            <label for="adresat" class="block text-sm font-medium text-gray-700">ADRESAT</label>
+                            <input type="text" id="adresat" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+
+                        <div>
+                            <label for="adres_cz1" class="block text-sm font-medium text-gray-700">ADRES (LINIA 1)</label>
+                            <input type="text" id="adres_cz1" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+
+                        <div>
+                            <label for="adres_cz2" class="block text-sm font-medium text-gray-700">ADRES (LINIA 2 - OPCJONALNIE)</label>
+                            <input type="text" id="adres_cz2" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-1">
+                                <label for="kod_pocztowy" class="block text-sm font-medium text-gray-700">KOD POCZTOWY</label>
+                                <input type="text" id="kod_pocztowy" placeholder="XX-XXX" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                            </div>
+                            <div class="col-span-2">
+                                <label for="poczta" class="block text-sm font-medium text-gray-700">POCZTA (WPISZ LUB WYBIERZ)</label>
+                                <input type="text" id="poczta" list="postOfficeList" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                <datalist id="postOfficeList">
+                                </datalist>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 mt-2">
+                             <button id="savePostOfficeButton" class="w-full bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors text-sm">ZAPISZ PARĘ KOD-POCZTA DO BAZY</button>
+                        </div>
+                        <div id="postOfficeMessageArea" class="h-6 text-sm font-medium text-green-600 mt-1"></div>
+
+
+                        <div>
+                            <label for="uwagi_potwierdzenia" class="block text-sm font-medium text-gray-700">UWAGI (DLA POTWIERDZENIA ODBIORU)</label>
+                            <div class="relative">
+                                <textarea id="uwagi_potwierdzenia" rows="3" placeholder="Wpisz uwagi..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase"></textarea>
+                                
+                                <div class="flex space-x-2 mt-2">
+                                    <button id="manageTemplatesButton" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-300 transition-colors">ZARZĄDZAJ SZABLONAMI</button>
+                                    <select id="selectTemplateDropdown" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-300 transition-colors w-full no-uppercase">
+                                        <option value="">WYBIERZ SZABLON...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div id="messageArea" class="h-6 text-sm font-medium text-green-600"></div>
+
+                        <div class="flex space-x-4 pt-2">
+                            <button id="saveButton" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition-colors shadow-lg">ZAPISZ W BAZIE</KOPERTY></button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                             <button id="printButton" class="w-full bg-pink-600 text-white px-6 py-3 rounded-md hover:bg-pink-700 transition-colors shadow-lg">GENERUJ KOPERTĘ (PDF)</button>
+                             <button id="receiptPrintButton" class="w-full bg-lime-600 text-white px-6 py-3 rounded-md hover:bg-lime-700 transition-colors shadow-lg">GENERUJ POTWIERDZENIE (ZWROTKA)</button>
+                        </div>
+
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h2 class="text-xl font-semibold mb-4">GENEROWANIE WIELU KOPERT</h2>
+                        <div id="bulkMessageArea" class="h-6 text-sm font-medium text-red-600"></div>
+                        <div>
+                            <label for="bulkCaseNumbers" class="block text-sm font-medium text-gray-700">NUMERY SPRAW (JEDEN NUMER NA LINIĘ)</label>
+                            <textarea id="bulkCaseNumbers" rows="5" placeholder="Wpisz numery spraw (np. AB/123/2025)..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 uppercase"></textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <button id="bulkPrintButton" class="w-full bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors shadow-lg">GENERUJ KOPERTY</button>
+                            <button id="bulkReceiptsPrintButton" class="w-full bg-lime-600 text-white px-6 py-3 rounded-md hover:bg-lime-700 transition-colors shadow-lg">GENERUJ ZWROTKI</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Koniec envelopeGeneratorTab -->
+
+
+        <!-- 
+        ================================================================
+        POCZĄTEK SEKCJI ZMODYFIKOWANEJ - NOWY FORMULARZ ODPOWIEDZI
+        ================================================================
+        -->
+        <div id="supportApplicationTab" class="hidden">
+            <!-- ZMIANA UKŁADU: Pełna szerokość -->
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 mt-4"> 
+
+                <!-- ZMIANA: Kolumna zajmuje całą szerokość -->
+                <div class="lg:col-span-5 space-y-6"> 
+                    <div class="bg-white p-6 rounded-lg shadow-md space-y-4" id="supportForm">
+                        <!-- ZMIANA: Nowy tytuł -->
+                        <h2 class="text-2xl font-bold text-gray-800">ODPOWIEDŹ NA WNIOSEK O UDOSTĘPNIENIE DANYCH</h2>
+                        <h3 class="text-xl font-semibold mb-4">WPROWADŹ DANE</h3>
+
+                        <div id="odpowiedzMessageArea" class="h-6 text-sm font-medium text-green-600"></div>
+
+                        <!-- Wyszukiwanie -->
+                        <div class="bg-gray-50 p-4 rounded-md space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end"> 
+                                <div>
+                                    <label for="odp_numer_orzeczenia_search" class="block text-sm font-medium text-gray-700">NUMER ORZECZENIA (DO WYSZUKANIA ADRESU)</label>
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="odp_numer_orzeczenia_search" placeholder="Wpisz numer sprawy z bazy kopert..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                        <button id="searchByOrzeczenieButton" class="mt-1 bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700 transition-colors whitespace-nowrap">SZUKAJ ADRESU</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="odp_numer_sprawy" class="block text-sm font-medium text-gray-700">NUMER SPRAWY (ODPOWIEDZI)</label>
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="odp_numer_sprawy" placeholder="Wpisz numer sprawy odpowiedzi..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                        <button id="searchBySprawaOdpowiedzButton" class="mt-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">WCZYTAJ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NOWY FORMULARZ WG WZORU -->
+                        
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE DOKUMENTU</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="odp_data_pisma" class="block text-sm font-medium text-gray-700">DATA PISMA {DATA_PISMA}</label>
+                                <input type="date" id="odp_data_pisma" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_wniosku" class="block text-sm font-medium text-gray-700">DATA WNIOSKU {DATA_WNIOSKU}</label>
+                                <input type="date" id="odp_data_wniosku" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_wplywu" class="block text-sm font-medium text-gray-700">DATA WPŁYWU {DATA_WPŁYWU}</label>
+                                <input type="date" id="odp_data_wplywu" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="odp_numer_wniosku" class="block text-sm font-medium text-gray-700">NUMER WNIOSKU {NUMER_WNIOSKU}</label>
+                            <input type="text" id="odp_numer_wniosku" placeholder="Np. WN/123/2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">ADRESAT (NA LIŚCIE)</h3>
+                         <div>
+                            <label for="odp_adresat" class="block text-sm font-medium text-gray-700">ADRESAT {ADRESAT}</label>
+                            <input type="text" id="odp_adresat" placeholder="Np. SĄD REJONOWY W..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div>
+                            <label for="odp_adres_cz1" class="block text-sm font-medium text-gray-700">ADRES (LINIA 1) {ADRES_CZ1}</label>
+                            <input type="text" id="odp_adres_cz1" placeholder="Np. UL. KOŚCIUSZKI 10" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div>
+                            <label for="odp_adres_cz2" class="block text-sm font-medium text-gray-700">ADRES (LINIA 2) {ADRES_CZ2}</label>
+                            <input type="text" id="odp_adres_cz2" placeholder="Opcjonalnie" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-1">
+                                <label for="odp_kod_pocztowy" class="block text-sm font-medium text-gray-700">KOD POCZTOWY {KOD_POCZTOWY}</label>
+                                <input type="text" id="odp_kod_pocztowy" placeholder="XX-XXX" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div class="col-span-2">
+                                <label for="odp_poczta" class="block text-sm font-medium text-gray-700">POCZTA {POCZTA}</label>
+                                <input type="text" id="odp_poczta" list="supportPostOfficeList" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE OSOBY, KTÓREJ DOTYCZY WNIOSEK</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div class="md:col-span-1">
+                                <label for="odp_pani_pana" class="block text-sm font-medium text-gray-700">PANI / PANA {PANI_PANA}</label>
+                                <select id="odp_pani_pana" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                                    <option value="Pani">Pani</option>
+                                    <option value="Pana">Pana</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="odp_osoby" class="block text-sm font-medium text-gray-700">OSOBA (ODMIENIONE) {OSOBY}</label>
+                                <input type="text" id="odp_osoby" placeholder="Np. ANNY KOWALSKIEJ" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+                        <div>
+                             <label for="odp_pesel" class="block text-sm font-medium text-gray-700">PESEL {PESEL}</label>
+                             <input type="text" id="odp_pesel" placeholder="XXXXXXXXXXX" maxlength="11" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE ORZECZENIA</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="odp_stopien_czy_niepelnosprawnosc" class="block text-sm font-medium text-gray-700">{STOPIEŃ_CZY_NIEPEŁNOSPRAWNOŚĆ}</label>
+                                <input type="text" id="odp_stopien_czy_niepelnosprawnosc" placeholder="Np. stopniu niepełnosprawności" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_numer_orzeczenia" class="block text-sm font-medium text-gray-700">NUMER ORZECZENIA {NUMER_ORZECZENIA}</label>
+                                <input type="text" id="odp_numer_orzeczenia" placeholder="Np. PCPR/123/2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                            </div>
+                             <div>
+                                <label for="odp_data_orzeczenia" class="block text-sm font-medium text-gray-700">DATA ORZECZENIA {DATA_ORZECZENIA}</label>
+                                <input type="date" id="odp_data_orzeczenia" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_prawomocnosci" class="block text-sm font-medium text-gray-700">DATA PRAWOMOCNOŚCI {DATA_PRAWOMOCNOŚCI}</label>
+                                <input type="date" id="odp_data_prawomocnosci" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">PODSTAWA PRAWNA</h3>
+                         <div>
+                            <label for="odp_podstawa_prawna" class="block text-sm font-medium text-gray-700">PODSTAWA PRAWNA {PODSTAWA_PRAWNA}</label>
+                            <!-- ZMIANA: <textarea> na <select> -->
+                            <select id="odp_podstawa_prawna" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                                <option value="">-- WYBIERZ PODSTAWĘ PRAWNĄ --</option>
+                                <!-- Opcje będą dodawane dynamicznie przez JS -->
+                            </select>
+                        </div>
+
+                        <!-- 
+                        ================================================================
+                        NOWA SEKCJA: ZARZĄDZANIE SZABLONAMI PODSTAW PRAWNYCH
+                        ================================================================
+                        -->
+                        <div class="pt-4 mt-4 border-t">
+                            <button id="toggleLegalBasisTemplateEditorButton" class="w-full text-left text-sm font-semibold text-gray-700 flex justify-between items-center">
+                                <span>ZARZĄDZAJ SZABLONAMI PODSTAW PRAWNYCH</span>
+                                <svg id="legalBasisTemplateChevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 transition-transform">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            
+                            <div id="legalBasisTemplateEditor" class="hidden space-y-4 pt-4">
+                                <div id="legalBasisTemplateMessageArea" class="h-6 text-sm font-medium text-red-600 text-center mb-2"></div>
+
+                                <!-- Formularz dodawania/edycji -->
+                                <div class="space-y-2 p-4 border rounded-md bg-gray-50">
+                                    <input type="hidden" id="legalBasisTemplateEditId"> <!-- Do śledzenia edytowanego szablonu -->
+                                    <div>
+                                        <label for="legalBasisTemplateNameInput" class="block text-xs font-medium text-gray-700">NAZWA SZABLONU (NP. "ART. 65 KPA")</label>
+                                        <input type="text" id="legalBasisTemplateNameInput" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                    </div>
+                                    <div>
+                                        <label for="legalBasisTemplateContentInput" class="block text-xs font-medium text-gray-700">TREŚĆ SZABLONU (PODSTAWA PRAWNA)</label>
+                                        <textarea id="legalBasisTemplateContentInput" rows="4" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase"></textarea>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button id="saveLegalBasisTemplateButton" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">ZAPISZ SZABLON</button>
+                                        <button id="clearLegalBasisTemplateFormButton" class="w-auto bg-gray-300 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-400 text-sm">WYCZYŚĆ</button>
+                                    </div>
+                                </div>
+
+                                <!-- Lista istniejących szablonów -->
+                                <h3 class="text-sm font-semibold pt-2 border-t">ISTNIEJĄCE SZABLONY</h3>
+                                <div id="legalBasisTemplateList" class="space-y-2 max-h-72 overflow-y-auto border p-2 rounded-md bg-white">
+                                     <p class="text-gray-500 text-sm">ŁADOWANIE SZABLONÓW...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ============================================= -->
+                        <!-- === KONIEC NOWEJ SEKCJI === -->
+                        <!-- ============================================= -->
+
+
+                    </div>
+                </div>
+
+                <!-- ZMIANA: Kolumna akcji, teraz w głównym divie -->
+                 <div class="lg:col-span-5 space-y-6">
+                     <div class="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h2 class="text-xl font-semibold mb-4">AKCJE</h2>
+                        <div class="space-y-3">
+                            <button id="newOdpowiedzButton" class="w-full bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors shadow-lg text-sm">
+                                NOWA ODPOWIEDŹ (WYCZYŚĆ FORMULARZ)
+                            </button>
+                            
+                            <button id="saveOdpowiedzButton" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition-colors shadow-lg">ZAPISZ W BAZIE</button>
+                            <button id="generateOdpowiedzPdfButton" class="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors shadow-lg">GENERUJ PDF ODPOWIEDZI</button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div> <!-- Koniec supportApplicationTab -->
+        <!-- 
+        ================================================================
+        KONIEC SEKCJI ZMODYFIKOWANEJ
+        ================================================================
+        -->
+
+
+        <div id="bulkPrintContainer" style="display: none;"></div>
+        
+    </div>
+
+    <!-- MODAL ZARZĄDZANIA SZABLONAMI (bez zmian) -->
+    <div id="templateModalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+    <div id="templateModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-xl z-50 w-full max-w-lg hidden">
+        <h2 class="text-xl font-bold mb-4">ZARZĄDZAJ SZABLONAMI UWAG</h2>
+        
+        <div id="templateMessageArea" class="h-6 text-sm font-medium text-red-600 text-center mb-2"></div>
+
+        <!-- Formularz dodawania/edycji -->
+        <div class="space-y-4">
+            <input type="hidden" id="templateEditId"> <!-- Do śledzenia edytowanego szablonu -->
+            <div>
+                <label for="templateName" class="block text-sm font-medium text-gray-700">NAZWA SZABLONU</label>
+                <input type="text" id="templateName" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+            </div>
+            <div>
+                <label for="templateContent" class="block text-sm font-medium text-gray-700">TREŚĆ SZABLONU</label>
+                <textarea id="templateContent" rows="4" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase"></textarea>
+            </div>
+            <div class="flex space-x-2">
+                <button id="saveTemplateButton" class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">ZAPISZ SZABLON</button>
+                <button id="clearTemplateFormButton" class="w-auto bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">WYCZYŚĆ</button>
+            </div>
+        </div>
+
+        <!-- Lista istniejących szablonów -->
+        <h3 class="text-lg font-semibold mt-6 mb-2">ISTNIEJĄCE SZABLONY</h3>
+        <div id="templateList" class="space-y-2 max-h-60 overflow-y-auto border p-2 rounded-md bg-gray-50">
+             <p class="text-gray-500 text-sm">ŁADOWANIE SZABLONÓW...</p>
+        </div>
+
+        <button id="closeTemplateModalButton" class="mt-6 w-full bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors">ZAMKIJ</button>
+    </div>
+    <!-- KONIEC MODALA -->
+
+    <!-- Datalist dla kodów pocztowych w drugiej zakładce -->
+    <datalist id="supportPostOfficeList"></datalist> 
+
+
+    <script type="module">
+        // Importy z Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            collection,
+            setLogLevel,
+            addDoc,
+            onSnapshot,
+            query,
+            deleteDoc,
+            where,
+            getDocs
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // === pdfMake CONFIG ===
+        const C6_WIDTH_PT = 458.11;
+        const C6_HEIGHT_PT = 323.15;
+        const C6_PAGE_SIZE = { width: C6_WIDTH_PT, height: C6_HEIGHT_PT };
+        const A4_WIDTH_PT = 595.28;
+        const A4_HEIGHT_PT = 841.89;
+
+        // Konfiguracja fontów dla pdfMake (Roboto jako domyślny)
+        if (typeof pdfMake !== 'undefined' && typeof pdfMake.vfs !== 'undefined') {
+            pdfMake.fonts = {
+                Roboto: {
+                    normal: 'Roboto-Regular.ttf',
+                    bold: 'Roboto-Medium.ttf',
+                    italics: 'Roboto-Italics.ttf',
+                    bolditalics: 'Roboto-MediumItalics.ttf'
+                },
+                'Times New Roman': { // Alias dla stopki (jeśli byłby potrzebny, ale nowy PDF go nie używa)
+                    normal: 'Roboto-Regular.ttf', 
+                    bold: 'Roboto-Medium.ttf',    
+                    italics: 'Roboto-Italics.ttf',
+                    bolditalics: 'Roboto-MediumItalics.ttf'
+                }
+            };
+        }
+        
+        // =========================================================================
+        // Wklejanie Base64 dla Nagłówka/Stopki PDF
+        // PROSZĘ WKLEIĆ SUROWĄ ZAWARTOŚĆ (TYLKO KOD BASE64) Z PLIKÓW TXT PONIŻEJ:
+        
+        // 1. Wklej zawartość 'top.txt' (dla nagłówka JPG) między cudzysłowy:
+        const base64DataTop = "PLACEHOLDER"; 
+        
+        // 2. Wklej zawartość 'bottom.txt' (dla stopki PNG) między cudzysłowy:
+        const base64DataBottom = "PLACEHOLDER";
+
+        // Zmienne globalne (automatycznie formatują dane)
+        let topImageBase64 = base64DataTop.startsWith('data:') ? base64DataTop : `data:image/jpeg;base64,${base64DataTop}`;
+        let bottomImageBase64 = base64DataBottom.startsWith('data:') ? base64DataBottom : `data:image/png;base64,${base64DataBottom}`;
+
+        // Sprawdzenie (dla dewelopera)
+        if (base64DataTop === "PLACEHOLDER" || base64DataTop.length < 100) {
+             console.warn("Plik 'top.txt' (Base64) nie został wklejony. Nagłówek PDF będzie pusty.");
+             topImageBase64 = ''; 
+        }
+        if (base64DataBottom === "PLACEHOLDER" || base64DataBottom.length < 100) {
+             console.warn("Plik 'bottom.txt' (Base64) nie został wklejony. Stopka PDF będzie pusta.");
+             bottomImageBase64 = ''; 
+        }
+        // =========================================================================
+
+
+        // Konfiguracja Firebase
+        // Zastępcza konfiguracja do testowania lokalnego
+        const firebaseConfig = {
+          apiKey: "AIzaSyDtm6GXEgMN37LK7b2D0l9azg-0OrckIi8",
+          authDomain: "envelopes-fe924.firebaseapp.com",
+          projectId: "envelopes-fe924",
+          storageBucket: "envelopes-fe924.firebasestorage.app",
+          messagingSenderId: "698645988757",
+          appId: "1:698645988757:web:143647cdd78abe7351629c"
+        };
+
+
+        // Zmienne środowiskowe Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'envelopes-fe924';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Inicjalizacja Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        setLogLevel('Debug'); // Włącz logowanie Firebase
+
+        let userId;
+        let envelopesCollection;
+        let settingsDocRef; 
+        let templatesCollection; 
+        let postOfficesCollection; 
+        let odpowiedziCollection; // NOWA KOLEKCJA
+        let legalBasisTemplatesCollection; // NOWA
+        
+        let templatesSnapshotUnsubscribe = null; 
+        let legalBasisTemplatesSnapshotUnsubscribe = null; // NOWA
+        let allTemplates = {}; 
+        let allLegalBasisTemplates = {}; // NOWA
+
+        // Domyślne/aktualne ustawienia
+        let currentSettings = {
+            fontSize: 12,      // pt
+            lineHeight: 1.1,   // em
+            fontWeight: 400,   // Waga czcionki (400 normal, 700 bold)
+            numSprawyTop: 15,  // mm - Koperta
+            numSprawyLeft: 15, // mm - Koperta
+            addressLeft: 50,   // % - Koperta
+            addressTop: 50,    // % - Koperta
+            recNumSprawyTop: 100, 
+            recNumSprawyLeft: 5,  
+            recAdresatTop: 5,     
+            recAdresatLeft: 5,    
+            recAdresCz1Top: 12,   
+            recAdresCz1Left: 5,   
+            recAdresCz2Top: 19,   
+            recAdresCz2Left: 5,   
+            recKodPocztaTop: 26,  
+            recKodPocztaLeft: 5,  
+            recUwagiTop: 100,     
+            recUwagiLeft: 50      
+        };
+
+        // === Elementy DOM - Aplikacja (Koperty) ===
+        const inputs = {
+            numer_sprawy: document.getElementById('numer_sprawy'),
+            adresat: document.getElementById('adresat'),
+            adres_cz1: document.getElementById('adres_cz1'),
+            adres_cz2: document.getElementById('adres_cz2'),
+            kod_pocztowy: document.getElementById('kod_pocztowy'),
+            poczta: document.getElementById('poczta'),
+            uwagi_potwierdzenia: document.getElementById('uwagi_potwierdzenia') 
+        };
+        
+        const previews = {
+            numerSprawy: document.getElementById('previewNumerSprawy'),
+            adresat: document.getElementById('previewAdresat'),
+            adresCz1: document.getElementById('previewAdresCz1'),
+            adresCz2: document.getElementById('previewAdresCz2'),
+            kodPoczta: document.getElementById('previewKodPoczta')
+        };
+        
+        // Elementy DOM - Kody Pocztowe
+        const savePostOfficeButton = document.getElementById('savePostOfficeButton');
+        const postOfficeMessageArea = document.getElementById('postOfficeMessageArea');
+        const postOfficeList = document.getElementById('postOfficeList');
+
+
+        // Elementy DOM - Szablony
+        const manageTemplatesButton = document.getElementById('manageTemplatesButton');
+        const selectTemplateDropdown = document.getElementById('selectTemplateDropdown');
+        const templateModalOverlay = document.getElementById('templateModalOverlay');
+        const templateModal = document.getElementById('templateModal');
+        const closeTemplateModalButton = document.getElementById('closeTemplateModalButton');
+        const templateMessageArea = document.getElementById('templateMessageArea');
+        const templateNameInput = document.getElementById('templateName');
+        const templateContentInput = document.getElementById('templateContent');
+        const saveTemplateButton = document.getElementById('saveTemplateButton');
+        const clearTemplateFormButton = document.getElementById('clearTemplateFormButton');
+        const templateList = document.getElementById('templateList');
+        const templateEditIdInput = document.getElementById('templateEditId');
+        
+        // Elementy DOM - Ustawienia Koperty
+        const fontSizeInput = document.getElementById('fontSize');
+        const lineHeightInput = document.getElementById('lineHeight'); 
+        const fontWeightSelect = document.getElementById('fontWeight');
+        const numSprawyTopInput = document.getElementById('numSprawyTop');
+        const numSprawyLeftInput = document.getElementById('numSprawyLeft');
+        const addressLeftInput = document.getElementById('addressLeft');
+        const addressTopInput = document.getElementById('addressTop');
+
+        // Elementy DOM - Ustawienia Potwierdzenia
+        const recNumSprawyTopInput = document.getElementById('recNumSprawyTop');
+        const recNumSprawyLeftInput = document.getElementById('recNumSprawyLeft');
+        const recAdresatTopInput = document.getElementById('recAdresatTop');
+        const recAdresatLeftInput = document.getElementById('recAdresatLeft');
+        const recAdresCz1TopInput = document.getElementById('recAdresCz1Top');
+        const recAdresCz1LeftInput = document.getElementById('recAdresCz1Left');
+        const recAdresCz2TopInput = document.getElementById('recAdresCz2Top');
+        const recAdresCz2LeftInput = document.getElementById('recAdresCz2Left');
+        const recKodPocztaTopInput = document.getElementById('recKodPocztaTop');
+        const recKodPocztaLeftInput = document.getElementById('recKodPocztaLeft');
+        const recUwagiTopInput = document.getElementById('recUwagiTop');
+        const recUwagiLeftInput = document.getElementById('recUwagiLeft');
+
+
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+        const addressBlock = document.getElementById('addressBlock');
+        const settingsMessageArea = document.getElementById('settingsMessageArea');
+        const envelopeElement = document.getElementById('envelope');
+        
+        // Elementy sterujące widocznością
+        const settingsSectionContainer = document.getElementById('settings-section-container');
+        const toggleSettingsButton = document.getElementById('toggleSettingsButton');
+        const closeSettingsButton = document.getElementById('closeSettingsButton');
+        const overlay = document.getElementById('overlay');
+
+
+        const searchInput = document.getElementById('searchNumerSprawy');
+        const searchButton = document.getElementById('searchButton');
+        const saveButton = document.getElementById('saveButton');
+        const printButton = document.getElementById('printButton'); 
+        const receiptPrintButton = document.getElementById('receiptPrintButton');
+        const messageArea = document.getElementById('messageArea');
+        const copySupportAddressButton = document.getElementById('copySupportAddressButton'); 
+        
+        // Elementy dla masowego druku
+        const bulkCaseNumbersInput = document.getElementById('bulkCaseNumbers');
+        const bulkPrintButton = document.getElementById('bulkPrintButton');
+        const bulkMessageArea = document.getElementById('bulkMessageArea');
+        const bulkReceiptsPrintButton = document.getElementById('bulkReceiptsPrintButton'); 
+        const bulkPrintContainer = document.getElementById('bulkPrintContainer');
+
+        // Elementy DOM - Autoryzacja
+        const authContainer = document.getElementById('authContainer');
+        const appContainer = document.getElementById('appContainer');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const anonymousLoginButton = document.getElementById('anonymousLoginButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const authMessageArea = document.getElementById('authMessageArea');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+
+        // === Elementy DOM - Zakładki ===
+        const tabButtonEnvelopes = document.getElementById('tabButtonEnvelopes');
+        const tabButtonSupport = document.getElementById('tabButtonSupport');
+        const envelopeGeneratorTab = document.getElementById('envelopeGeneratorTab');
+        const supportApplicationTab = document.getElementById('supportApplicationTab');
+
+        // === NOWE: Elementy DOM - Formularz Odpowiedzi ===
+        const odpowiedzFields = {
+            numer_orzeczenia_search: document.getElementById('odp_numer_orzeczenia_search'),
+            numer_sprawy: document.getElementById('odp_numer_sprawy'),
+            data_pisma: document.getElementById('odp_data_pisma'),
+            data_wniosku: document.getElementById('odp_data_wniosku'),
+            data_wplywu: document.getElementById('odp_data_wplywu'),
+            numer_wniosku: document.getElementById('odp_numer_wniosku'),
+            adresat: document.getElementById('odp_adresat'),
+            adres_cz1: document.getElementById('odp_adres_cz1'),
+            adres_cz2: document.getElementById('odp_adres_cz2'),
+            kod_pocztowy: document.getElementById('odp_kod_pocztowy'),
+            poczta: document.getElementById('odp_poczta'),
+            pani_pana: document.getElementById('odp_pani_pana'),
+            osoby: document.getElementById('odp_osoby'),
+            pesel: document.getElementById('odp_pesel'),
+            stopien_czy_niepelnosprawnosc: document.getElementById('odp_stopien_czy_niepelnosprawnosc'),
+            numer_orzeczenia: document.getElementById('odp_numer_orzeczenia'),
+            data_orzeczenia: document.getElementById('odp_data_orzeczenia'),
+            data_prawomocnosci: document.getElementById('odp_data_prawomocnosci'),
+            podstawa_prawna: document.getElementById('odp_podstawa_prawna'), // Teraz to <select>
+        };
+        
+        const odpowiedzButtons = {
+            searchByOrzeczenie: document.getElementById('searchByOrzeczenieButton'),
+            searchBySprawaOdpowiedz: document.getElementById('searchBySprawaOdpowiedzButton'),
+            saveOdpowiedz: document.getElementById('saveOdpowiedzButton'),
+            generateOdpowiedzPdf: document.getElementById('generateOdpowiedzPdfButton'),
+            newOdpowiedz: document.getElementById('newOdpowiedzButton') 
+        };
+        
+        const odpowiedzMessageArea = document.getElementById('odpowiedzMessageArea');
+
+        // === NOWE: Elementy DOM - Szablony Podstaw Prawnych ===
+        const toggleLegalBasisTemplateEditorButton = document.getElementById('toggleLegalBasisTemplateEditorButton');
+        const legalBasisTemplateChevron = document.getElementById('legalBasisTemplateChevron');
+        const legalBasisTemplateEditor = document.getElementById('legalBasisTemplateEditor');
+        const legalBasisTemplateMessageArea = document.getElementById('legalBasisTemplateMessageArea');
+        const legalBasisTemplateEditId = document.getElementById('legalBasisTemplateEditId');
+        const legalBasisTemplateNameInput = document.getElementById('legalBasisTemplateNameInput');
+        const legalBasisTemplateContentInput = document.getElementById('legalBasisTemplateContentInput');
+        const saveLegalBasisTemplateButton = document.getElementById('saveLegalBasisTemplateButton');
+        const clearLegalBasisTemplateFormButton = document.getElementById('clearLegalBasisTemplateFormButton');
+        const legalBasisTemplateList = document.getElementById('legalBasisTemplateList');
+
+
+        // === Funkcje pomocnicze (Komunikaty) ===
+        function showAuthMessage(text) {
+            authMessageArea.textContent = text.toUpperCase();
+            setTimeout(() => { authMessageArea.textContent = ''; }, 3000);
+        }
+
+        function showMessage(text, isError = false) {
+            messageArea.textContent = text.toUpperCase();
+            messageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { messageArea.textContent = ''; }, 3000);
+        }
+        
+        function showPostOfficeMessage(text, isError = false) {
+            if (!postOfficeMessageArea) return;
+            postOfficeMessageArea.textContent = text.toUpperCase();
+            postOfficeMessageArea.className = `h-6 text-sm font-medium mt-1 ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { postOfficeMessageArea.textContent = ''; }, 3000);
+        }
+
+        function showBulkMessage(text, isError = false) {
+            bulkMessageArea.textContent = text.toUpperCase();
+            bulkMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { bulkMessageArea.textContent = ''; }, 5000);
+        }
+
+        function showSettingsMessage(text, isError = false) {
+            settingsMessageArea.textContent = text.toUpperCase();
+            settingsMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { settingsMessageArea.textContent = ''; }, 3000);
+        }
+        
+        function showTemplateMessage(text, isError = false) {
+            if (!templateMessageArea) return;
+            templateMessageArea.textContent = text.toUpperCase();
+            templateMessageArea.className = `h-6 text-sm font-medium text-center ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { templateMessageArea.textContent = ''; }, 3000);
+        }
+        
+        // NOWA: Funkcja komunikatów dla szablonów podstaw prawnych
+        function showLegalBasisTemplateMessage(text, isError = false) {
+            if (!legalBasisTemplateMessageArea) return;
+            legalBasisTemplateMessageArea.textContent = text.toUpperCase();
+            legalBasisTemplateMessageArea.className = `h-6 text-sm font-medium text-center ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { legalBasisTemplateMessageArea.textContent = ''; }, 3000);
+        }
+
+        // NOWA: Funkcja komunikatów dla zakładki Odpowiedzi
+        function showOdpowiedzMessage(text, isError = false) {
+            if (!odpowiedzMessageArea) return;
+            odpowiedzMessageArea.textContent = text.toUpperCase();
+            odpowiedzMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { odpowiedzMessageArea.textContent = ''; }, 3000);
+        }
+
+        // === Funkcje formatowania "Title Case" ===
+        function toTitleCase(str) {
+            if (!str) return "";
+            return str.toLowerCase().replace(/(^|\s|-|')([a-ząćęłńóśźż])/g, 
+                (match, separator, char) => separator + char.toUpperCase()
+            );
+        }
+
+        function formatAddressLine2(str) {
+            if (!str) return "";
+            let formattedStr = toTitleCase(str);
+            formattedStr = formattedStr.replace(/Ul\./g, 'ul.');
+            formattedStr = formattedStr.replace(/(\d+)([a-ząćęłńóśźż])\b/g, (match, num, letter) => {
+                return `${num}${letter.toUpperCase()}`;
+            });
+            return formattedStr;
+        }
+
+        // Funkcja pomocnicza: Formatowanie daty dd.mm.yyyy
+        function formatDateDDMMYYYY(dateString) {
+            if (!dateString) return '.........................';
+            try {
+                const dateUTC = new Date(dateString + 'T00:00:00Z');
+                if (isNaN(dateUTC.getTime())) {
+                     return '.........................';
+                }
+                const day = String(dateUTC.getUTCDate()).padStart(2, '0');
+                const month = String(dateUTC.getUTCMonth() + 1).padStart(2, '0'); // Miesiące są 0-indeksowane
+                const year = dateUTC.getUTCFullYear();
+                return `${day}.${month}.${year}`;
+            } catch (error) {
+                console.error("Błąd formatowania daty:", error);
+                return '.........................';
+            }
+        }
+
+
+        // === Funkcje Ustawień (Koperty) ===
+        function applySettings() {
+            if (envelopeElement) {
+                envelopeElement.style.fontSize = `${currentSettings.fontSize}pt`;
+                envelopeElement.style.fontWeight = currentSettings.fontWeight; 
+                envelopeElement.style.lineHeight = `${currentSettings.lineHeight}em`; 
+            }
+            if (previews.numerSprawy) {
+                previews.numerSprawy.style.top = `${currentSettings.numSprawyTop}mm`;
+                previews.numerSprawy.style.left = `${currentSettings.numSprawyLeft}mm`; 
+            }
+            if (addressBlock) {
+                addressBlock.style.left = `${currentSettings.addressLeft}%`;
+                addressBlock.style.top = `${currentSettings.addressTop}%`;
+                addressBlock.style.transform = `translate(-${currentSettings.addressLeft}%, -${currentSettings.addressTop}%)`;
+            }
+        }
+        
+        function updateSettingsInputs() {
+            if (fontSizeInput) fontSizeInput.value = currentSettings.fontSize;
+            if (lineHeightInput) lineHeightInput.value = currentSettings.lineHeight; 
+            if (fontWeightSelect) fontWeightSelect.value = currentSettings.fontWeight;
+            if (numSprawyTopInput) numSprawyTopInput.value = currentSettings.numSprawyTop;
+            if (numSprawyLeftInput) numSprawyLeftInput.value = currentSettings.numSprawyLeft; 
+            if (addressLeftInput) addressLeftInput.value = currentSettings.addressLeft;
+            if (addressTopInput) addressTopInput.value = currentSettings.addressTop;
+            if (recNumSprawyTopInput) recNumSprawyTopInput.value = currentSettings.recNumSprawyTop;
+            if (recNumSprawyLeftInput) recNumSprawyLeftInput.value = currentSettings.recNumSprawyLeft;
+            if (recAdresatTopInput) recAdresatTopInput.value = currentSettings.recAdresatTop;
+            if (recAdresatLeftInput) recAdresatLeftInput.value = currentSettings.recAdresatLeft;
+            if (recAdresCz1TopInput) recAdresCz1TopInput.value = currentSettings.recAdresCz1Top;
+            if (recAdresCz1LeftInput) recAdresCz1LeftInput.value = currentSettings.recAdresCz1Left;
+            if (recAdresCz2TopInput) recAdresCz2TopInput.value = currentSettings.recAdresCz2Top;
+            if (recAdresCz2LeftInput) recAdresCz2LeftInput.value = currentSettings.recAdresCz2Left;
+            if (recKodPocztaTopInput) recKodPocztaTopInput.value = currentSettings.recKodPocztaTop;
+            if (recKodPocztaLeftInput) recKodPocztaLeftInput.value = currentSettings.recKodPocztaLeft;
+            if (recUwagiTopInput) recUwagiTopInput.value = currentSettings.recUwagiTop;
+            if (recUwagiLeftInput) recUwagiLeftInput.value = currentSettings.recUwagiLeft;
+            applySettings();
+        }
+
+        async function loadSettings() {
+            if (!settingsDocRef) return;
+            try {
+                const docSnap = await getDoc(settingsDocRef);
+                if (docSnap.exists()) {
+                    const loadedSettings = docSnap.data();
+                    currentSettings = { ...currentSettings, ...loadedSettings }; 
+                } else {
+                    console.log("BRAK ZAPISANYCH USTAWIEŃ. UŻYWAM DOMYŚLNYCH.");
+                }
+                updateSettingsInputs();
+            } catch (error) {
+                console.error("BŁĄD ŁADOWANIA USTAWIEŃ:", error);
+            }
+        }
+
+        async function handleSaveSettings() {
+            if (!settingsDocRef) {
+                showSettingsMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            currentSettings.fontSize = parseFloat(fontSizeInput.value) || currentSettings.fontSize;
+            currentSettings.lineHeight = parseFloat(lineHeightInput.value) || currentSettings.lineHeight; 
+            currentSettings.fontWeight = parseFloat(fontWeightSelect.value) || currentSettings.fontWeight;
+            currentSettings.numSprawyTop = parseFloat(numSprawyTopInput.value) || currentSettings.numSprawyTop;
+            currentSettings.numSprawyLeft = parseFloat(numSprawyLeftInput.value) || currentSettings.numSprawyLeft; 
+            currentSettings.addressLeft = parseFloat(addressLeftInput.value) || currentSettings.addressLeft;
+            currentSettings.addressTop = parseFloat(addressTopInput.value) || currentSettings.addressTop;
+            currentSettings.recNumSprawyTop = parseFloat(recNumSprawyTopInput.value) || currentSettings.recNumSprawyTop;
+            currentSettings.recNumSprawyLeft = parseFloat(recNumSprawyLeftInput.value) || currentSettings.recNumSprawyLeft;
+            currentSettings.recAdresatTop = parseFloat(recAdresatTopInput.value) || currentSettings.recAdresatTop;
+            currentSettings.recAdresatLeft = parseFloat(recAdresatLeftInput.value) || currentSettings.recAdresatLeft;
+            currentSettings.recAdresCz1Top = parseFloat(recAdresCz1TopInput.value) || currentSettings.recAdresCz1Top;
+            currentSettings.recAdresCz1Left = parseFloat(recAdresCz1LeftInput.value) || currentSettings.recAdresCz1Left;
+            currentSettings.recAdresCz2Top = parseFloat(recAdresCz2TopInput.value) || currentSettings.recAdresCz2Top;
+            currentSettings.recAdresCz2Left = parseFloat(recAdresCz2LeftInput.value) || currentSettings.recAdresCz2Left;
+            currentSettings.recKodPocztaTop = parseFloat(recKodPocztaTopInput.value) || currentSettings.recKodPocztaTop;
+            currentSettings.recKodPocztaLeft = parseFloat(recKodPocztaLeftInput.value) || currentSettings.recKodPocztaLeft;
+            currentSettings.recUwagiTop = parseFloat(recUwagiTopInput.value) || currentSettings.recUwagiTop;
+            currentSettings.recUwagiLeft = parseFloat(recUwagiLeftInput.value) || currentSettings.recUwagiLeft;
+            applySettings(); 
+            try {
+                await setDoc(settingsDocRef, currentSettings);
+                showSettingsMessage("USTAWIENIA POMYŚLNIE ZAPISANE!", false);
+            } catch (error) {
+                console.error("BŁĄD ZAPISU USTAWIEŃ:", error);
+                showSettingsMessage(`BŁĄD ZAPISU: ${error.message}`, true);
+            }
+        }
+        
+        // --- Funkcje Zarządzania Szablonami (Koperty) ---
+
+        function openTemplateModal() {
+            templateModalOverlay.classList.remove('hidden');
+            templateModal.classList.remove('hidden');
+            clearTemplateForm(); 
+        }
+        
+        function closeTemplateModal() {
+            templateModalOverlay.classList.add('hidden');
+            templateModal.classList.add('hidden');
+        }
+
+        async function loadTemplates() {
+            if (!templatesCollection) return;
+            if (templatesSnapshotUnsubscribe) {
+                templatesSnapshotUnsubscribe();
+            }
+
+            templatesSnapshotUnsubscribe = onSnapshot(query(templatesCollection), (querySnapshot) => {
+                allTemplates = {}; 
+                const templates = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    templates.push({ id: doc.id, ...data });
+                    allTemplates[doc.id] = data; 
+                });
+                templates.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                populateTemplateList(templates);
+                populateTemplateDropdown(templates);
+            }, (error) => {
+                console.error("BŁĄD ŁADOWANIA SZABLONÓW: ", error);
+                if(templateList) templateList.innerHTML = '<p class="text-red-500 text-sm">BŁĄD ŁADOWANIA SZABLONÓW.</p>';
+            });
+        }
+
+        function populateTemplateList(templates) {
+            if (!templateList) return;
+            templateList.innerHTML = ''; 
+            if (templates.length === 0) {
+                templateList.innerHTML = '<p class="text-gray-500 text-sm">BRAK ZAPISANYCH SZABLONÓW.</p>';
+                return;
+            }
+            
+            templates.forEach(template => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded-md border';
+                div.innerHTML = `
+                    <span class="font-medium">${template.name}</span>
+                    <div class="space-x-2 flex-shrink-0">
+                        <button class="edit-template-btn text-blue-600 hover:text-blue-800 text-sm font-medium" data-id="${template.id}">EDYTUJ</button>
+                        <button class="delete-template-btn text-red-600 hover:text-red-800 text-sm font-medium" data-id="${template.id}">USUŃ</button>
+                    </div>
+                `;
+                templateList.appendChild(div);
+            });
+            
+            templateList.querySelectorAll('.edit-template-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleEditTemplate(btn.dataset.id));
+            });
+            templateList.querySelectorAll('.delete-template-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleDeleteTemplate(btn.dataset.id));
+            });
+        }
+
+        function populateTemplateDropdown(templates) {
+            if (!selectTemplateDropdown) return;
+            selectTemplateDropdown.innerHTML = '<option value="">WYBIERZ SZABLON...</option>';
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                selectTemplateDropdown.appendChild(option);
+            });
+        }
+
+        async function handleSaveTemplate() {
+            if (!templatesCollection) return;
+            const name = templateNameInput.value.toUpperCase();
+            const content = templateContentInput.value; 
+            const editId = templateEditIdInput.value;
+            if (!name || !content) {
+                showTemplateMessage("NAZWA I TREŚĆ SĄ WYMAGANE.", true);
+                return;
+            }
+            try {
+                if (editId) {
+                    const docRef = doc(templatesCollection, editId);
+                    await setDoc(docRef, { name, content }); 
+                    showTemplateMessage("SZABLON ZAKTUALIZOWANY", false);
+                } else {
+                    await addDoc(templatesCollection, { name, content });
+                    showTemplateMessage("SZABLON ZAPISANY", false);
+                }
+                clearTemplateForm();
+            } catch (error) {
+                console.error("BŁĄD ZAPISU SZABLONU:", error);
+                showTemplateMessage("BŁĄD ZAPISU.", true);
+            }
+        }
+
+        function clearTemplateForm() {
+            templateNameInput.value = '';
+            templateContentInput.value = '';
+            templateEditIdInput.value = '';
+        }
+
+        function handleEditTemplate(id) {
+            const template = allTemplates[id];
+            if (template) {
+                templateEditIdInput.value = id;
+                templateNameInput.value = template.name;
+                templateContentInput.value = template.content;
+                showTemplateMessage("ZAŁADOWANO DO EDYCJI", false);
+            }
+        }
+
+        async function handleDeleteTemplate(id) {
+            if (!templatesCollection) return;
+            try {
+                const docRef = doc(templatesCollection, id);
+                await deleteDoc(docRef);
+                showTemplateMessage("SZABLON USUNIĘTY", false);
+                clearTemplateForm(); 
+            } catch (error) {
+                console.error("BŁĄD USUWANIA SZABLONU:", error);
+                showTemplateMessage("BŁĄD USUWANIA.", true);
+            }
+        }
+
+        function handleTemplateSelect() {
+            const selectedId = selectTemplateDropdown.value;
+            if (selectedId && allTemplates[selectedId]) {
+                const content = allTemplates[selectedId].content;
+                const regex = /{([^{}]*)}/g;
+                let processedContent = content.replace(regex, (match, fieldId) => {
+                    if (inputs.hasOwnProperty(fieldId) && inputs[fieldId]) {
+                        return inputs[fieldId].value; 
+                    }
+                    return match;
+                });
+                inputs.uwagi_potwierdzenia.value = processedContent;
+                selectTemplateDropdown.value = ""; 
+            }
+        }
+
+        // --- Funkcje Bazy Kodów Pocztowych (Koperty) ---
+
+        async function handlePostalCodeInput() {
+            if (!postOfficesCollection || !postOfficeList) return;
+            const kodValue = inputs.kod_pocztowy.value.toUpperCase().trim();
+            if (kodValue.length === 0) {
+                postOfficeList.innerHTML = '';
+                return;
+            }
+            if (kodValue.match(/^\d{2}-\d{3}$/)) {
+                try {
+                    const q = query(postOfficesCollection, where("kod", "==", kodValue));
+                    const querySnapshot = await getDocs(q);
+                    postOfficeList.innerHTML = ''; 
+                    let results = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if(data.poczta) {
+                            results.push(data.poczta);
+                        }
+                    });
+                    const uniqueResults = [...new Set(results)];
+                    if (uniqueResults.length > 0) {
+                        uniqueResults.forEach(poczta => {
+                            const option = document.createElement('option');
+                            option.value = poczta;
+                            postOfficeList.appendChild(option);
+                        });
+                        if (uniqueResults.length === 1) {
+                            inputs.poczta.value = uniqueResults[0];
+                            updatePreview(); 
+                        }
+                    } 
+                } catch (error) {
+                    console.error("BŁĄD WYSZUKIWANIA KODU POCZTOWEGO:", error);
+                    showPostOfficeMessage("BŁĄD WYSZUKIWANIA KODU", true);
+                }
+            } else {
+                 postOfficeList.innerHTML = '';
+            }
+        }
+        
+        async function handleSavePostOffice() {
+            if (!postOfficesCollection) {
+                showPostOfficeMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ.", true);
+                return;
+            }
+            const kod = inputs.kod_pocztowy.value.toUpperCase().trim();
+            const poczta = inputs.poczta.value.toUpperCase().trim();
+            if (!kod.match(/^\d{2}-\d{3}$/)) {
+                showPostOfficeMessage("BŁĘDNY FORMAT KODU (OCZEKIWANO XX-XXX)", true);
+                return;
+            }
+            if (poczta.length === 0) {
+                showPostOfficeMessage("NAZWA POCZTY JEST WYMAGANA.", true);
+                return;
+            }
+            try {
+                const docId = `${kod}_${poczta}`;
+                const docRef = doc(postOfficesCollection, docId);
+                await setDoc(docRef, {
+                    kod: kod,
+                    poczta: poczta
+                });
+                showPostOfficeMessage("PARA KOD-POCZTA ZAPISANA W BAZIE.", false);
+                await handlePostalCodeInput();
+            } catch (error) {
+                console.error("BŁĄD ZAPISU KODU POCZTOWEGO:", error);
+                showPostOfficeMessage("BŁĄD ZAPISU.", true);
+            }
+        }
+
+        // --- Baza Kodów Pocztowych (Dla zakładki Odpowiedzi) ---
+        async function handleSupportPostalCodeInput() {
+            const supportPostOfficeList = document.getElementById('supportPostOfficeList');
+            if (!postOfficesCollection || !supportPostOfficeList) return;
+            const kodValue = odpowiedzFields.kod_pocztowy.value.toUpperCase().trim(); 
+            if (kodValue.length === 0) {
+                supportPostOfficeList.innerHTML = '';
+                return;
+            }
+            if (kodValue.match(/^\d{2}-\d{3}$/)) { 
+                try {
+                    const q = query(postOfficesCollection, where("kod", "==", kodValue));
+                    const querySnapshot = await getDocs(q);
+                    supportPostOfficeList.innerHTML = '';
+                    let results = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if(data.poczta) {
+                            results.push(data.poczta); 
+                        }
+                    });
+                    const uniqueResults = [...new Set(results)]; 
+                    if (uniqueResults.length > 0) {
+                        uniqueResults.forEach(poczta => { 
+                            const option = document.createElement('option');
+                            option.value = toTitleCase(poczta); 
+                            supportPostOfficeList.appendChild(option);
+                        });
+                        if (uniqueResults.length === 1) {
+                            odpowiedzFields.poczta.value = toTitleCase(uniqueResults[0]); 
+                        }
+                    }
+                } catch (error) {
+                    console.error("BŁĄD WYSZUKIWANIA KODU POCZTOWEGO (ODPOWIEDZI):", error);
+                    showOdpowiedzMessage("BŁĄD WYSZUKIWANIA KODU", true);
+                }
+            } else {
+                 supportPostOfficeList.innerHTML = '';
+            }
+        }
+
+        // --- Funkcje Główne (Koperty) ---
+
+        function convertToUppercase(event) {
+            const input = event.target;
+            if (!input.classList.contains('no-uppercase')) {
+                input.value = input.value.toUpperCase();
+            }
+        }
+
+        function updatePreview() {
+            if (previews.numerSprawy && inputs.numer_sprawy) {
+                previews.numerSprawy.textContent = inputs.numer_sprawy.value;
+            }
+            if (previews.adresat && inputs.adresat) {
+                previews.adresat.textContent = inputs.adresat.value;
+            }
+            if (previews.adresCz1 && inputs.adres_cz1) {
+                previews.adresCz1.textContent = inputs.adres_cz1.value;
+            }
+            if (previews.adresCz2 && inputs.adres_cz2) {
+                previews.adresCz2.textContent = inputs.adres_cz2.value;
+            }
+            if (previews.kodPoczta && inputs.kod_pocztowy && inputs.poczta) {
+                const kod = inputs.kod_pocztowy.value;
+                const poczta = inputs.poczta.value; 
+                previews.kodPoczta.textContent = `${kod}  ${poczta}`.trim();
+            }
+            applySettings(); 
+        }
+
+        function clearForm() {
+            Object.values(inputs).forEach(input => input.value = '');
+            if(postOfficeList) postOfficeList.innerHTML = ''; 
+            updatePreview();
+        }
+
+        async function handleSave() {
+            if (!userId || !envelopesCollection) {
+                showMessage("BŁĄD: MUSISZ BYĆ ZALOGOWANY, ABY ZAPISAĆ DANE.", true);
+                return;
+            }
+            const data = {
+                numer_sprawy: inputs.numer_sprawy.value.toUpperCase(),
+                adresat: inputs.adresat.value.toUpperCase(),
+                adres_cz1: inputs.adres_cz1.value.toUpperCase(),
+                adres_cz2: inputs.adres_cz2.value.toUpperCase(),
+                kod_pocztowy: inputs.kod_pocztowy.value.toUpperCase(),
+                poczta: inputs.poczta.value.toUpperCase(),
+                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value, 
+                timestamp: new Date().toISOString()
+            };
+            const numerSprawy = data.numer_sprawy;
+            if (!numerSprawy) {
+                showMessage("NUMER SPRAWY JEST WYMAGANY DO ZAPISU.", true);
+                return;
+            }
+            try {
+                const docRef = doc(envelopesCollection, numerSprawy);
+                await setDoc(docRef, data); 
+                showMessage("DANE KOPERTY ZOSTAŁY POMYŚLNIE ZAPISANE.", false);
+            } catch (error) {
+                console.error("BŁĄD PODCZAS ZAPISU:", error);
+                showMessage(`BŁĄD ZAPISU: ${error.message}`, true);
+            }
+        }
+
+        async function handleSearch() {
+            if (!userId || !envelopesCollection) {
+                showMessage("BŁĄD: MUSISZ BYĆ ZALOGOWANY, ABY WYSZUWAĆ DANE.", true);
+                return;
+            }
+            const numerSprawy = searchInput.value;
+            if (!numerSprawy) {
+                showMessage("WPISZ NUMER SPRAWY DO WYSZUKANIA.", true);
+                return;
+            }
+            try {
+                const docRef = doc(envelopesCollection, numerSprawy.toUpperCase());
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    Object.keys(inputs).forEach(key => {
+                        if (data[key] !== undefined) { 
+                            inputs[key].value = data[key]; 
+                        } else if (key === 'uwagi_potwierdzenia' && data[key] === undefined) {
+                             inputs[key].value = '';
+                        }
+                    });
+                    updatePreview(); 
+                    showMessage("DANE SPRAWY ZOSTAŁY WCZYTANE.", false);
+                    if (inputs.kod_pocztowy.value) {
+                        handlePostalCodeInput();
+                    }
+                } else {
+                    showMessage("NIE ZNALEZIONO SPRAWY O PODANYM NUMERZE.", true);
+                    clearForm(); 
+                }
+            } catch (error) {
+                console.error("BŁĄD PODCZAS WYSZUKIWANIA:", error);
+                showMessage(`BŁĄD WYSZUKIWANIA: ${error.message}`, true);
+            }
+        }
+        
+        function createEnvelopeContent(data) {
+            const fontSize = currentSettings.fontSize;
+            const lineHeight = currentSettings.lineHeight;
+            const bold = currentSettings.fontWeight == 700;
+            const numSprawyTopPt = currentSettings.numSprawyTop * 2.83465;
+            const numSprawyLeftPt = currentSettings.numSprawyLeft * 2.83465;
+            const targetMarginX = (currentSettings.addressLeft / 100) * C6_WIDTH_PT;
+            const targetMarginY = (currentSettings.addressTop / 100) * C6_HEIGHT_PT;
+            const addressLines = [
+                data.adresat,
+                data.adres_cz1,
+                data.adres_cz2,
+                `${data.kod_pocztowy} ${data.poczta}`.trim()
+            ].filter(line => line.trim() !== '');
+            const defaultStyle = { 
+                font: 'Roboto', 
+                fontSize: fontSize, 
+                lineHeight: lineHeight, 
+                bold: bold, 
+                alignment: 'left' 
+            };
+            return {
+                stack: [
+                    {
+                        text: data.numer_sprawy,
+                        absolutePosition: { x: numSprawyLeftPt, y: numSprawyTopPt },
+                        style: defaultStyle
+                    },
+                    {
+                        absolutePosition: { x: targetMarginX, y: targetMarginY },
+                        stack: addressLines.map(text => ({ 
+                            text: text, 
+                            style: defaultStyle,
+                            margin: [0, 0, 0, 0],
+                            lineHeight: lineHeight
+                        }))
+                    }
+                ],
+                table: {
+                    widths: [C6_WIDTH_PT],
+                    heights: [C6_HEIGHT_PT],
+                    body: [[ { text: '', border: [false, false, false, false], fillColor: '#FFFFFF' } ]]
+                },
+                layout: 'noBorders'
+            };
+        }
+
+        function createReceiptContent(data) {
+            const mmToPt = 2.83465;
+            const defaultFontSize = 12;
+            const createAbsolutePosition = (text, topMm, leftMm, style = {}) => ({
+                text: text,
+                absolutePosition: { x: leftMm * mmToPt, y: topMm * mmToPt },
+                style: {
+                    font: 'Roboto',
+                    fontSize: currentSettings.fontSize || defaultFontSize, 
+                    lineHeight: currentSettings.lineHeight || 1.1,
+                    bold: currentSettings.fontWeight == 700,
+                    alignment: 'left',
+                    ...style
+                }
+            });
+            const adresCz1Content = data.adres_cz1.trim() || ""; 
+            const uwagiContent = data.uwagi_potwierdzenia.trim() ? `[${data.uwagi_potwierdzenia}]` : "";
+            const contentStack = [
+                createAbsolutePosition(data.adresat, currentSettings.recAdresatTop, currentSettings.recAdresatLeft, { bold: true }),
+                createAbsolutePosition(adresCz1Content, currentSettings.recAdresCz1Top, currentSettings.recAdresCz1Left),
+                data.adres_cz2.trim() ? createAbsolutePosition(data.adres_cz2, currentSettings.recAdresCz2Top, currentSettings.recAdresCz2Left) : null,
+                createAbsolutePosition(`${data.kod_pocztowy} ${data.poczta}`, currentSettings.recKodPocztaTop, currentSettings.recKodPocztaLeft, { tracking: 2 }),
+                createAbsolutePosition(data.numer_sprawy, currentSettings.recNumSprawyTop, currentSettings.recNumSprawyLeft, { bold: true }),
+                uwagiContent ? createAbsolutePosition(uwagiContent, currentSettings.recUwagiTop, currentSettings.recUwagiLeft, { textTransform: 'none', bold: false, fontSize: currentSettings.fontSize * 0.9 }) : null,
+            ].filter(item => item !== null); 
+            return {
+                content: [
+                     { stack: contentStack },
+                     { text: '', absolutePosition: { x: 0, y: C6_HEIGHT_PT - 1 }, fontSize: 1, lineHeight: 1 }
+                ],
+                pageSize: C6_PAGE_SIZE,
+                pageMargins: [5, 5, 5, 5],
+                layout: 'noBorders'
+            };
+        }
+        
+        function handleGenerateSinglePDF() {
+             const data = {
+                numer_sprawy: inputs.numer_sprawy.value.toUpperCase(),
+                adresat: inputs.adresat.value.toUpperCase(),
+                adres_cz1: inputs.adres_cz1.value.toUpperCase(),
+                adres_cz2: inputs.adres_cz2.value.toUpperCase(),
+                kod_pocztowy: inputs.kod_pocztowy.value.toUpperCase(),
+                poczta: inputs.poczta.value.toUpperCase(),
+            };
+            if (!data.numer_sprawy) {
+                showMessage("NUMER SPRAWY JEST WYMAGANY DO GENEROWANIA PDF.", true);
+                return;
+            }
+            try {
+                const docDefinition = {
+                    pageSize: C6_PAGE_SIZE,
+                    pageMargins: 0,
+                    content: [ createEnvelopeContent(data) ],
+                    styles: { defaultStyle: { font: 'Roboto' } }
+                };
+                pdfMake.createPdf(docDefinition).download(`koperta_${data.numer_sprawy}.pdf`);
+                showMessage("PDF KOPERTY WYGENEROWANY POMYŚLNIE.", false);
+            } catch (error) {
+                console.error("BŁĄD GENEROWANIA PDF (POJ. KOPERTA):", error);
+                showMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+        
+        function handleGenerateReceiptPDF() {
+             const data = {
+                numer_sprawy: inputs.numer_sprawy.value.toUpperCase(),
+                adresat: inputs.adresat.value.toUpperCase(),
+                adres_cz1: inputs.adres_cz1.value.toUpperCase(),
+                adres_cz2: inputs.adres_cz2.value.toUpperCase(),
+                kod_pocztowy: inputs.kod_pocztowy.value.toUpperCase(),
+                poczta: inputs.poczta.value.toUpperCase(),
+                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value 
+            };
+            if (!data.numer_sprawy) {
+                showMessage("NUMER SPRAWY JEST WYMAGANY DO GENEROWANIA PDF.", true);
+                return;
+            }
+            try {
+                const docDefinition = createReceiptContent(data); 
+                pdfMake.createPdf(docDefinition).download(`potwierdzenie_${data.numer_sprawy}.pdf`);
+                showMessage("PDF POTWIERDZENIA ODBIORU WYGENEROWANY POMYŚLNIE.", false);
+            } catch (error) {
+                console.error("BŁĄD GENEROWANIA PDF (POTWIERDZENIE):", error);
+                showMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+
+        async function handleGenerateMultiplePDF() {
+            if (!userId || !envelopesCollection) {
+                showBulkMessage("BŁĄD: MUSISZ BYĆ ZALOGOWANY, ABY DRUKOWAĆ.", true);
+                return;
+            }
+            const numbersText = bulkCaseNumbersInput.value.toUpperCase();
+            if (!numbersText.trim()) {
+                showBulkMessage("WPISZ NUMERY SPRAW W POLU POWYŻEJ.", true);
+                return;
+            }
+            const caseNumbers = numbersText.split('\n').map(num => num.trim()).filter(num => num.length > 0);
+            if (caseNumbers.length === 0) {
+                 showBulkMessage("NIE ZNALEZIONO WAŻNYCH NUMERÓW SPRAW.", true);
+                 return;
+            }
+            showBulkMessage(`WYSZUKIWANIE ${caseNumbers.length} SPRAW... TO MOŻE CHWILĘ POTRWAĆ.`, false);
+            const envelopePromises = caseNumbers.map(async (num) => {
+                try {
+                    const docRef = doc(envelopesCollection, num);
+                    const docSnap = await getDoc(docRef);
+                    return docSnap.exists() ? docSnap.data() : null;
+                } catch (error) {
+                    console.error(`BŁĄD WCZYTYWANIA SPRAWY ${num}:`, error);
+                    return null;
+                }
+            });
+            const envelopeDataList = (await Promise.all(envelopePromises)).filter(data => data !== null);
+            if (envelopeDataList.length === 0) {
+                showBulkMessage("BŁĄD: NIE ZNALEZIONO DANYCH DLA ŻADNEJ Z PODANYCH SPRAW.", true);
+                return;
+            }
+            try {
+                const pdfContent = envelopeDataList.map((data, index) => {
+                    const content = createEnvelopeContent(data);
+                    if (index < envelopeDataList.length - 1) {
+                        content.pageBreak = 'after';
+                    }
+                    return content;
+                });
+                const docDefinition = {
+                    pageSize: C6_PAGE_SIZE,
+                    pageMargins: 0,
+                    content: pdfContent,
+                    styles: { defaultStyle: { font: 'Roboto' } }
+                };
+                pdfMake.createPdf(docDefinition).download(`koperty_masowe_${new Date().toISOString().slice(0, 10)}.pdf`);
+                showBulkMessage(`PDF Z ${envelopeDataList.length} KOPERTAMI WYGENEROWANY POMYŚLNIE.`, false);
+            } catch (error) {
+                console.error("BŁĄD GENEROWANIA PDF (WIEL.):", error);
+                showBulkMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+
+        async function handleGenerateMultipleReceiptsPDF() {
+            if (!userId || !envelopesCollection) {
+                showBulkMessage("BŁĄD: MUSISZ BYĆ ZALOGOWANY, ABY DRUKOWAĆ.", true);
+                return;
+            }
+            const numbersText = bulkCaseNumbersInput.value.toUpperCase();
+            if (!numbersText.trim()) {
+                showBulkMessage("WPISZ NUMERY SPRAW W POLU POWYŻEJ.", true);
+                return;
+            }
+            const caseNumbers = numbersText.split('\n').map(num => num.trim()).filter(num => num.length > 0);
+            if (caseNumbers.length === 0) {
+                 showBulkMessage("NIE ZNALEZIONO WAŻNYCH NUMERÓW SPRAW.", true);
+                 return;
+            }
+            showBulkMessage(`WYSZUKIWANIE ${caseNumbers.length} SPRAW... TO MOŻE CHWILĘ POTRWAĆ.`, false);
+            const envelopePromises = caseNumbers.map(async (num) => {
+                try {
+                    const docRef = doc(envelopesCollection, num);
+                    const docSnap = await getDoc(docRef);
+                    return docSnap.exists() ? docSnap.data() : null; 
+                } catch (error) {
+                    console.error(`BŁĄD WCZYTYWANIA SPRAWY ${num}:`, error);
+                    return null;
+                }
+            });
+            const envelopeDataList = (await Promise.all(envelopePromises)).filter(data => data !== null);
+            if (envelopeDataList.length === 0) {
+                showBulkMessage("BŁĄD: NIE ZNALEZIONO DANYCH DLA ŻADNEJ Z PODANYCH SPRAW.", true);
+                return;
+            }
+            try {
+                const pdfContent = envelopeDataList.map((data, index) => {
+                    const singleReceiptDef = createReceiptContent(data);
+                    const contentWrapper = { stack: singleReceiptDef.content };
+                    if (index < envelopeDataList.length - 1) {
+                        contentWrapper.pageBreak = 'after';
+                    }
+                    return contentWrapper;
+                });
+                const docDefinition = {
+                    pageSize: C6_PAGE_SIZE,
+                    pageMargins: [5, 5, 5, 5], 
+                    content: pdfContent,
+                    styles: { defaultStyle: { font: 'Roboto' } }
+                };
+                pdfMake.createPdf(docDefinition).download(`zwrotki_masowe_${new Date().toISOString().slice(0, 10)}.pdf`);
+                showBulkMessage(`PDF Z ${envelopeDataList.length} ZWROTKAMI WYGENEROWANY POMYŚLNIE.`, false);
+            } catch (error) {
+                console.error("BŁĄD GENEROWANIA PDF (WIEL. ZWROTKI):", error);
+                showBulkMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+
+        // --- NOWE FUNKCJE: ZAKŁADKA ODPOWIEDZI ---
+
+        // Przełączanie zakładek
+        function switchTab(tabToActivate) {
+            if (tabToActivate === 'envelopes') {
+                envelopeGeneratorTab.classList.remove('hidden');
+                supportApplicationTab.classList.add('hidden');
+                tabButtonEnvelopes.classList.add('active');
+                tabButtonSupport.classList.remove('active');
+                syncSupportToEnvelope(); 
+            } else if (tabToActivate === 'support') {
+                envelopeGeneratorTab.classList.add('hidden');
+                supportApplicationTab.classList.remove('hidden');
+                tabButtonEnvelopes.classList.remove('active');
+                tabButtonSupport.classList.add('active');
+            }
+        }
+        
+        // NOWA FUNKCJA: Czyszczenie formularza odpowiedzi
+        function clearOdpowiedzForm() {
+            Object.values(odpowiedzFields).forEach(input => {
+                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT') {
+                    input.value = '';
+                }
+            });
+            if (odpowiedzFields.pani_pana) odpowiedzFields.pani_pana.value = 'Pani';
+            showOdpowiedzMessage("FORMULARZ WYCZYSZCZONY. GOTOWY NA NOWĄ ODPOWIEDŹ.", false);
+        }
+
+        // NOWA FUNKCJA: Kopiowanie danych z Odpowiedzi do Kopert
+        function syncSupportToEnvelope() {
+            if (!odpowiedzFields.adresat.value && !odpowiedzFields.adres_cz1.value && !odpowiedzFields.numer_sprawy.value) {
+                showMessage("BRAK DANYCH W FORMULARZU ODPOWIEDZI DO SKOPIOWANIA.", true);
+                return;
+            }
+            inputs.numer_sprawy.value = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            inputs.adresat.value = odpowiedzFields.adresat.value.toUpperCase();
+            inputs.adres_cz1.value = odpowiedzFields.adres_cz1.value.toUpperCase();
+            inputs.adres_cz2.value = odpowiedzFields.adres_cz2.value.toUpperCase();
+            inputs.kod_pocztowy.value = odpowiedzFields.kod_pocztowy.value.toUpperCase();
+            inputs.poczta.value = odpowiedzFields.poczta.value.toUpperCase();
+            updatePreview();
+            showMessage("DANE ADRESOWE SKOPIOWANE Z ODPOWIEDZI.", false);
+            if (inputs.kod_pocztowy.value) {
+                handlePostalCodeInput();
+            }
+        }
+
+        // Wyszukiwanie adresu z bazy kopert
+        async function handleSearchByOrzeczenie() {
+            if (!userId || !envelopesCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            // Używamy pola wyszukiwania
+            const orzeczenieNumber = odpowiedzFields.numer_orzeczenia_search.value;
+            if (!orzeczenieNumber) {
+                showOdpowiedzMessage("WPISZ NUMER ORZECZENIA DO WYSZUKANIA.", true);
+                return;
+            }
+
+            try {
+                const docRef = doc(envelopesCollection, orzeczenieNumber.toUpperCase());
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Wypełnij pola adresu w formularzu odpowiedzi
+                    odpowiedzFields.adresat.value = toTitleCase(data.adresat || '');
+                    odpowiedzFields.adres_cz1.value = toTitleCase(data.adres_cz1 || '');
+                    odpowiedzFields.adres_cz2.value = formatAddressLine2(data.adres_cz2 || '');
+                    odpowiedzFields.kod_pocztowy.value = (data.kod_pocztowy || '').toUpperCase(); // Kod jest wyjątkiem, zostaje UPPERCASE
+                    odpowiedzFields.poczta.value = toTitleCase(data.poczta || '');
+                    
+                    // Wypełnij pole numeru orzeczenia w głównych danych
+                    odpowiedzFields.numer_orzeczenia.value = orzeczenieNumber.toUpperCase();
+                    
+                    showOdpowiedzMessage("DANE ADRESOWE ZOSTAŁY WCZYTANE.", false);
+                } else {
+                    showOdpowiedzMessage("NIE ZNALEZIONO DANYCH DLA TEGO NUMERU.", true);
+                }
+            } catch (error) {
+                console.error("BŁĄD WYSZUKIWANIA PO NR ORZECZENIA:", error);
+                showOdpowiedzMessage(`BŁĄD WYSZUKIWANIA: ${error.message}`, true);
+            }
+        }
+
+        // Zapisywanie danych odpowiedzi
+        async function handleSaveOdpowiedz() {
+            if (!userId || !odpowiedziCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            const numerSprawy = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            if (!numerSprawy) {
+                showOdpowiedzMessage("NUMER SPRAWY (ODPOWIEDZI) JEST WYMAGANY.", true);
+                return;
+            }
+            
+            // Zbierz dane z formularza
+            const data = {
+                numer_sprawy: numerSprawy,
+                numer_orzeczenia_search: odpowiedzFields.numer_orzeczenia_search.value.toUpperCase(),
+                data_pisma: odpowiedzFields.data_pisma.value,
+                data_wniosku: odpowiedzFields.data_wniosku.value,
+                data_wplywu: odpowiedzFields.data_wplywu.value,
+                numer_wniosku: odpowiedzFields.numer_wniosku.value.toUpperCase(),
+                adresat: odpowiedzFields.adresat.value, // no-uppercase
+                adres_cz1: odpowiedzFields.adres_cz1.value, // no-uppercase
+                adres_cz2: odpowiedzFields.adres_cz2.value, // no-uppercase
+                kod_pocztowy: odpowiedzFields.kod_pocztowy.value.toUpperCase(), // kod zawsze uppercase
+                poczta: odpowiedzFields.poczta.value, // no-uppercase
+                pani_pana: odpowiedzFields.pani_pana.value, // no-uppercase
+                osoby: odpowiedzFields.osoby.value, // no-uppercase
+                pesel: odpowiedzFields.pesel.value, // no-uppercase
+                stopien_czy_niepelnosprawnosc: odpowiedzFields.stopien_czy_niepelnosprawnosc.value, // no-uppercase
+                numer_orzeczenia: odpowiedzFields.numer_orzeczenia.value.toUpperCase(),
+                data_orzeczenia: odpowiedzFields.data_orzeczenia.value,
+                data_prawomocnosci: odpowiedzFields.data_prawomocnosci.value,
+                podstawa_prawna: odpowiedzFields.podstawa_prawna.value, // ZMIANA: Zapisuje ID szablonu
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const docRef = doc(odpowiedziCollection, numerSprawy);
+                await setDoc(docRef, data); 
+                showOdpowiedzMessage("DANE ODPOWIEDZI ZOSTAŁY ZAPISANE.", false);
+            } catch (error) {
+                console.error("BŁĄD ZAPISU ODPOWIEDZI:", error);
+                showOdpowiedzMessage(`BŁĄD ZAPISU: ${error.message}`, true);
+            }
+        }
+        
+        // Wczytywanie danych odpowiedzi
+        async function handleSearchBySprawaOdpowiedz() {
+            if (!userId || !odpowiedziCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            const numerSprawy = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            if (!numerSprawy) {
+                showOdpowiedzMessage("WPISZ NUMER SPRAWY (ODPOWIEDZI) DO WCZYTANIA.", true);
+                return;
+            }
+            
+            try {
+                const docRef = doc(odpowiedziCollection, numerSprawy);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Wypełnij wszystkie pola formularza na podstawie wczytanych danych
+                    odpowiedzFields.numer_orzeczenia_search.value = data.numer_orzeczenia_search || '';
+                    odpowiedzFields.data_pisma.value = data.data_pisma || '';
+                    odpowiedzFields.data_wniosku.value = data.data_wniosku || '';
+                    odpowiedzFields.data_wplywu.value = data.data_wplywu || '';
+                    odpowiedzFields.numer_wniosku.value = data.numer_wniosku || '';
+                    odpowiedzFields.adresat.value = data.adresat || '';
+                    odpowiedzFields.adres_cz1.value = data.adres_cz1 || '';
+                    odpowiedzFields.adres_cz2.value = data.adres_cz2 || '';
+                    odpowiedzFields.kod_pocztowy.value = data.kod_pocztowy || '';
+                    odpowiedzFields.poczta.value = data.poczta || '';
+                    odpowiedzFields.pani_pana.value = data.pani_pana || 'Pani';
+                    odpowiedzFields.osoby.value = data.osoby || '';
+                    odpowiedzFields.pesel.value = data.pesel || '';
+                    odpowiedzFields.stopien_czy_niepelnosprawnosc.value = data.stopien_czy_niepelnosprawnosc || '';
+                    odpowiedzFields.numer_orzeczenia.value = data.numer_orzeczenia || '';
+                    odpowiedzFields.data_orzeczenia.value = data.data_orzeczenia || '';
+                    odpowiedzFields.data_prawomocnosci.value = data.data_prawomocnosci || '';
+                    odpowiedzFields.podstawa_prawna.value = data.podstawa_prawna || ''; // ZMIANA: Wczytuje ID do <select>
+
+                    showOdpowiedzMessage("DANE SPRAWY ZOSTAŁY WCZYTANE.", false);
+                } else {
+                    // Wyczyść formularz, jeśli nie znaleziono
+                    const currentSprawa = odpowiedzFields.numer_sprawy.value;
+                    clearOdpowiedzForm();
+                    odpowiedzFields.numer_sprawy.value = currentSprawa;
+                    showOdpowiedzMessage("NIE ZNALEZIONO SPRAWY. FORMULARZ GOTOWY DO WYPEŁNIENIA.", true);
+                }
+            } catch (error) {
+                console.error("BŁĄD WCZYTYWANIA SPRAWY (ODPOWIEDŹ):", error);
+                showOdpowiedzMessage(`BŁĄD WCZYTYWANIA: ${error.message}`, true);
+            }
+        }
+
+        // --- NOWE FUNKCJE: Zarządzanie Szablonami Podstaw Prawnych ---
+
+        function toggleLegalBasisTemplateEditor() {
+            if(legalBasisTemplateEditor) legalBasisTemplateEditor.classList.toggle('hidden');
+            if(legalBasisTemplateChevron) legalBasisTemplateChevron.classList.toggle('rotate-180');
+        }
+
+        function clearLegalBasisTemplateForm() {
+            if(legalBasisTemplateNameInput) legalBasisTemplateNameInput.value = '';
+            if(legalBasisTemplateContentInput) legalBasisTemplateContentInput.value = '';
+            if(legalBasisTemplateEditId) legalBasisTemplateEditId.value = '';
+        }
+
+        async function loadLegalBasisTemplates() {
+            if (!legalBasisTemplatesCollection) return;
+            if (legalBasisTemplatesSnapshotUnsubscribe) {
+                legalBasisTemplatesSnapshotUnsubscribe();
+            }
+
+            legalBasisTemplatesSnapshotUnsubscribe = onSnapshot(query(legalBasisTemplatesCollection), (querySnapshot) => {
+                allLegalBasisTemplates = {}; 
+                const templates = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    templates.push({ id: doc.id, ...data });
+                    allLegalBasisTemplates[doc.id] = data; 
+                });
+                templates.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                populateLegalBasisTemplateList(templates);
+                populateLegalBasisDropdown(templates); // NOWA FUNKCJA
+            }, (error) => {
+                console.error("BŁĄD ŁADOWANIA SZABLONÓW PODSTAW PRAWNYCH: ", error);
+                if(legalBasisTemplateList) legalBasisTemplateList.innerHTML = '<p class="text-red-500 text-sm">BŁĄD ŁADOWANIA SZABLONÓW.</p>';
+            });
+        }
+
+        // NOWA FUNKCJA: Wypełnianie listy rozwijanej <select>
+        function populateLegalBasisDropdown(templates) {
+            const select = odpowiedzFields.podstawa_prawna;
+            if (!select || select.tagName !== 'SELECT') return; 
+
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">-- WYBIERZ PODSTAWĘ PRAWNĄ --</option>'; 
+            
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id; // Przechowuj ID
+                option.textContent = template.name; // Wyświetlaj nazwę
+                select.appendChild(option);
+            });
+
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        function populateLegalBasisTemplateList(templates) {
+            if (!legalBasisTemplateList) return;
+            legalBasisTemplateList.innerHTML = ''; 
+            if (templates.length === 0) {
+                legalBasisTemplateList.innerHTML = '<p class="text-gray-500 text-sm">BRAK ZAPISANYCH SZABLONÓW PODSTAW PRAWNYCH.</p>';
+                return;
+            }
+            
+            templates.forEach(template => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded-md border text-sm';
+                div.innerHTML = `
+                    <span class="font-medium uppercase flex-1 truncate" title="${template.name}">${template.name}</span>
+                    <div class="space-x-2 flex-shrink-0 ml-2">
+                        <button class="use-legal-basis-btn text-green-600 hover:text-green-800 font-medium" data-id="${template.id}">UŻYJ</button>
+                        <button class="edit-legal-basis-btn text-blue-600 hover:text-blue-800 font-medium" data-id="${template.id}">EDYTUJ</button>
+                        <button class="delete-legal-basis-btn text-red-600 hover:text-red-800 font-medium" data-id="${template.id}">USUŃ</button>
+                    </div>
+                `;
+                legalBasisTemplateList.appendChild(div);
+            });
+            
+            legalBasisTemplateList.querySelectorAll('.use-legal-basis-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleUseLegalBasisTemplate(btn.dataset.id));
+            });
+            legalBasisTemplateList.querySelectorAll('.edit-legal-basis-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleEditLegalBasisTemplate(btn.dataset.id));
+            });
+            legalBasisTemplateList.querySelectorAll('.delete-legal-basis-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleDeleteLegalBasisTemplate(btn.dataset.id));
+            });
+        }
+
+        async function handleSaveLegalBasisTemplate() {
+            if (!legalBasisTemplatesCollection) return;
+            
+            const name = legalBasisTemplateNameInput.value.toUpperCase(); // Nazwa zawsze uppercase
+            const content = legalBasisTemplateContentInput.value; // Treść bez zmian
+            const editId = legalBasisTemplateEditId.value;
+            
+            if (!name || !content) {
+                showLegalBasisTemplateMessage("NAZWA I TREŚĆ SĄ WYMAGANE.", true);
+                return;
+            }
+            
+            try {
+                if (editId) {
+                    const docRef = doc(legalBasisTemplatesCollection, editId);
+                    await setDoc(docRef, { name, content }); 
+                    showLegalBasisTemplateMessage("SZABLON ZAKTUALIZOWANY", false);
+                } else {
+                    await addDoc(legalBasisTemplatesCollection, { name, content });
+                    showLegalBasisTemplateMessage("SZABLON ZAPISANY", false);
+                }
+                clearLegalBasisTemplateForm();
+            } catch (error) {
+                console.error("BŁĄD ZAPISU SZABLONU PODSTAWY PRAWNEJ:", error);
+                showLegalBasisTemplateMessage("BŁĄD ZAPISU.", true);
+            }
+        }
+
+        function handleEditLegalBasisTemplate(id) {
+            const template = allLegalBasisTemplates[id];
+            if (template) {
+                legalBasisTemplateEditId.value = id;
+                legalBasisTemplateNameInput.value = template.name;
+                legalBasisTemplateContentInput.value = template.content;
+                showLegalBasisTemplateMessage("ZAŁADOWANO DO EDYCJI", false);
+            }
+        }
+
+        async function handleDeleteLegalBasisTemplate(id) {
+            if (!legalBasisTemplatesCollection) return;
+            try {
+                const docRef = doc(legalBasisTemplatesCollection, id);
+                await deleteDoc(docRef);
+                showLegalBasisTemplateMessage("SZABLON USUNIĘTY", false);
+                clearLegalBasisTemplateForm(); 
+            } catch (error) {
+                console.error("BŁĄD USUWANIA SZABLONU PODSTAWY PRAWNEJ:", error);
+                showLegalBasisTemplateMessage("BŁĄD USUWANIA.", true);
+            }
+        }
+
+        function handleUseLegalBasisTemplate(id) {
+            const template = allLegalBasisTemplates[id];
+            if (template) {
+                // ZMIANA: Ustawia ID w liście rozwijanej
+                odpowiedzFields.podstawa_prawna.value = id; 
+                showLegalBasisTemplateMessage("WYBRANO SZABLON.", false);
+            }
+        }
+
+
+        // Generowanie PDF odpowiedzi (NOWA FUNKCJA)
+        function handleGenerateOdpowiedzPdf() {
+            // 1. Zbierz dane z formularza
+            // ZMIANA: Pobierz ID szablonu i znajdź treść
+            const selectedLegalBasisId = odpowiedzFields.podstawa_prawna.value;
+            const legalBasisContent = allLegalBasisTemplates[selectedLegalBasisId]?.content || '... (NIE WYBRANO PODSTAWY PRAWNEJ) ...';
+
+            const data = {
+                DATA_PISMA: formatDateDDMMYYYY(odpowiedzFields.data_pisma.value),
+                NUMER_SPRAWY: odpowiedzFields.numer_sprawy.value.toUpperCase(),
+                ADRESAT: odpowiedzFields.adresat.value,
+                ADRES_CZ1: odpowiedzFields.adres_cz1.value,
+                ADRES_CZ2: odpowiedzFields.adres_cz2.value,
+                KOD_POCZTOWY: odpowiedzFields.kod_pocztowy.value.toUpperCase(),
+                POCZTA: odpowiedzFields.poczta.value,
+                NUMER_WNIOSKU: odpowiedzFields.numer_wniosku.value.toUpperCase(),
+                DATA_WNIOSKU: formatDateDDMMYYYY(odpowiedzFields.data_wniosku.value),
+                DATA_WPŁYWU: formatDateDDMMYYYY(odpowiedzFields.data_wplywu.value),
+                PANI_PANA: odpowiedzFields.pani_pana.value,
+                OSOBY: odpowiedzFields.osoby.value,
+                PESEL: odpowiedzFields.pesel.value,
+                PODSTAWA_PRAWNA: legalBasisContent, // ZMIANA: Użyj pobranej treści
+                STOPIEŃ_CZY_NIEPEŁNOSPRAWNOŚĆ: odpowiedzFields.stopien_czy_niepelnosprawnosc.value,
+                NUMER_ORZECZENIA: odpowiedzFields.numer_orzeczenia.value.toUpperCase(),
+                DATA_ORZECZENIA: formatDateDDMMYYYY(odpowiedzFields.data_orzeczenia.value),
+                DATA_PRAWOMOCNOŚCI: formatDateDDMMYYYY(odpowiedzFields.data_prawomocnosci.value),
+            };
+
+            // 2. Definicja dokumentu PDFmake
+            const docDefinition = {
+                pageSize: 'A4',
+                pageMargins: [72, 60, 72, 72], // ZMIANA MARGINESÓW (L, T, R, B) - T=60, B=72
+                
+                // =========================================================================
+                // POCZĄTEK: DODANY NAGŁÓWEK (header)
+                // =========================================================================
+                header: function(currentPage, pageCount, pageSize) {
+                    let headerContent;
+                    const cm_to_pt = 28.35; // 1cm = 28.35pt (w przybliżeniu)
+
+                    if (topImageBase64) {
+                        // Użyj obrazu Base64 (top.jpg)
+                        headerContent = {
+                            image: topImageBase64,
+                            width: (pageSize.width - 144) + (2 * cm_to_pt), // ok. 508pt
+                            alignment: 'center' 
+                        };
+                    } else {
+                         // Pusty, jeśli brak Base64
+                         headerContent = { text: '', margin: [0, 30] }; // Placeholder, żeby zachować margines
+                    }
+
+                    return {
+                        stack: [headerContent],
+                        margin: [0, 0, 0, 0],
+                        absolutePosition: { x: 0, y: 0 } 
+                    };
+                },
+                // =========================================================================
+                // KONIEC: DODANY NAGŁÓWEK (header)
+                // =========================================================================
+                
+                // =========================================================================
+                // POCZĄTEK: DODANA STOPKA (footer)
+                // =========================================================================
+                footer: function(currentPage, pageCount, pageSize) {
+                    const footerText = [
+                        'Powiatowy Zespół ds. Orzekania o Niepełnosprawności',
+                        'ul. Chemików 6; 05-100 Nowy Dwór Mazowiecki',
+                        'Tel. 22 765 32 06; 22 765 32 07',
+                        'e-mail: sekretariat@nowodworski.pl',
+                        'www.nowodworski.pl'
+                    ].join('\n');
+                    
+                    let imageContent;
+                    if (bottomImageBase64) {
+                        // Użyj obrazu Base64 (bottom.png)
+                        imageContent = {
+                            image: bottomImageBase64,
+                            width: 200, 
+                            alignment: 'center',
+                            margin: [0, 10, 0, 0] 
+                        };
+                    } else {
+                        // Pusty, jeśli brak Base64
+                        imageContent = { text: '', margin: [0, 20] }; // Placeholder
+                    }
+                    
+                    return {
+                        stack: [
+                            imageContent,
+                            // Tekst stopki (wyśrodkowany, 9pt, Times New Roman)
+                            {
+                                text: footerText,
+                                alignment: 'center',
+                                style: 'footerStyle',
+                                margin: [0, 5, 0, 0] 
+                            }
+                        ],
+                        margin: [0, 0, 0, 0] 
+                    };
+                },
+                // =========================================================================
+                // KONIEC: DODANA STOPKA (footer)
+                // =========================================================================
+
+                content: [
+                    // Data i numer sprawy
+                    { 
+                        text: `Nowy Dwór Mazowiecki, dnia ${data.DATA_PISMA} r.`, 
+                        style: 'normalText', 
+                        alignment: 'right',
+                        marginTop: 55 // DODANY MARGINES GÓRNY (aby odsunąć od nagłówka)
+                    },
+                    { 
+                        text: data.NUMER_SPRAWY, 
+                        style: 'normalText', 
+                        alignment: 'left', 
+                        marginBottom: 15
+                    },
+                    
+                    // Adresat
+                    { text: data.ADRESAT, style: 'addressStyle' },
+                    { text: data.ADRES_CZ1, style: 'addressStyle' },
+                    (data.ADRES_CZ2 ? { text: data.ADRES_CZ2, style: 'addressStyle' } : null),
+                    { 
+                        text: `${data.KOD_POCZTOWY} ${data.POCZTA}`, 
+                        style: 'addressStyle', 
+                        marginBottom: 30 // Odstęp po adresie
+                    },
+
+                    // Treść 1
+                    {
+                        text: [
+                            '\tW odpowiedzi na wniosek o udostępnienie danych ze zbioru danych osobowych nr ',
+                            { text: data.NUMER_WNIOSKU, style: 'boldText' },
+                            ' z dnia ',
+                            { text: data.DATA_WNIOSKU, style: 'boldText' },
+                            ' r. (data wpływu do Zespołu ',
+                            { text: data.DATA_WPŁYWU, style: 'boldText' },
+                            ' r.) z pytaniem, czy orzeczenie o stopniu niepełnosprawności wydane dla ',
+                            { text: data.PANI_PANA, style: 'boldText' },
+                            ' ',
+                            { text: data.OSOBY, style: 'boldText' },
+                            ' (PESEL: ',
+                            { text: data.PESEL, style: 'boldText' },
+                            ') jest prawomocne, zgodnie z ',
+                            { text: data.PODSTAWA_PRAWNA, style: 'boldText' },
+                            ', Powiatowy Zespół ds. Orzekania o Niepełnosprawności w Nowym Dworze Mazowieckim informuje, iż orzeczenie wydane dla ',
+                            { text: data.PANI_PANA, style: 'boldText' },
+                            ' ',
+                            { text: data.OSOBY, style: 'boldText' },
+                            ' jest prawomocne.'
+                        ],
+                        style: 'justifiedText',
+                        marginBottom: 20
+                    },
+                    
+                    // Treść 2
+                    {
+                        text: [
+                            'Orzeczenie o ',
+                            { text: data.STOPIEŃ_CZY_NIEPEŁNOSPRAWNOŚĆ, style: 'boldText' },
+                            ' nr ',
+                            { text: data.NUMER_ORZECZENIA, style: 'boldText' },
+                            ' z dnia ',
+                            { text: data.DATA_ORZECZENIA, style: 'boldText' },
+                            ' r. stało się prawomocne w dniu ',
+                            { text: data.DATA_PRAWOMOCNOŚCI, style: 'boldText' },
+                            ' r.'
+                        ],
+                        style: 'justifiedText',
+                        marginBottom: 80
+                    },
+                    
+                    // Podpis
+                    { 
+                        text: 'Z poważaniem', 
+                        style: 'normalText', 
+                        alignment: 'right', // Przeniesione na prawo
+                        marginTop: 40 // Duży odstęp na podpis
+                    }
+
+                ].filter(Boolean), // Usuń puste wpisy (np. pusty adres_cz2)
+                
+                // Style
+                styles: {
+                    normalText: {
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        font: 'Roboto'
+                    },
+                    boldText: {
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        font: 'Roboto',
+                        bold: true
+                    },
+                    justifiedText: {
+                        fontSize: 11,
+                        lineHeight: 1.5, // Zwiększona interlinia dla czytelności
+                        font: 'Roboto',
+                        alignment: 'justify'
+                    },
+                    addressStyle: {
+                        fontSize: 11,
+                        lineHeight: 1.2,
+                        font: 'Roboto',
+                        alignment: 'left' // Adresat po lewej
+                    },
+                    // =========================================================================
+                    // POCZĄTEK: DODANY STYL STOPKI
+                    // =========================================================================
+                    footerStyle: {
+                        fontSize: 9,
+                        font: 'Times New Roman', // Wymaga aliasu w pdfMake.fonts
+                        lineHeight: 1.1,
+                        alignment: 'center'
+                    }
+                    // =========================================================================
+                    // KONIEC: DODANY STYL STOPKI
+                    // =========================================================================
+                },
+                defaultStyle: {
+                    font: 'Roboto'
+                }
+            };
+            
+            // 4. Wygeneruj PDF
+            try {
+                pdfMake.createPdf(docDefinition).download(`odpowiedz_${data.NUMER_SPRAWY}.pdf`);
+                showOdpowiedzMessage("PDF ODPOWIEDZI WYGENEROWANY.", false);
+            } catch (error) {
+                 console.error("BŁĄD GENEROWANIA PDF (ODPOWIEDŹ):", error);
+                 showOdpowiedzMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+
+
+        // --- Funkcje Autoryzacji ---
+        async function handleRegister(e) { e.preventDefault(); const email = loginEmail.value; const password = loginPassword.value; try { await createUserWithEmailAndPassword(auth, email, password); showAuthMessage("ZAREJESTROWANO POMYŚLNIE!"); } catch (error) { console.error("BŁĄD REJESTRACJI:", error.message); showAuthMessage(error.message); } }
+        async function handleLogin(e) { e.preventDefault(); const email = loginEmail.value; const password = loginPassword.value; try { await signInWithEmailAndPassword(auth, email, password); showAuthMessage("ZALOGOWANO POMYŚLNIE!"); } catch (error) { console.error("BŁĄD LOGOWANIA:", error.message); showAuthMessage(error.message); } }
+        async function handleAnonymousLogin() { try { await signInAnonymously(auth); showAuthMessage("ZALOGOWANO ANONIMOWO!"); } catch (error) { console.error("BŁĄD LOGOWANIA ANONIMOWEGO:", error.message); showAuthMessage(error.message); } }
+        async function handleLogout() { try { await signOut(auth); } catch (error) { console.error("BŁĄD WYLOGOWANIA:", error.message); showMessage(error.message, true); } }
+        
+        function toggleSettings() {
+            settingsSectionContainer.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+
+        // Funkcja inicjująca nasłuchiwacze zdarzeń UI
+        function initializeUIListeners() {
+            // Generowanie PDF (Koperty)
+            if (printButton) printButton.addEventListener('click', handleGenerateSinglePDF);
+            if (receiptPrintButton) receiptPrintButton.addEventListener('click', handleGenerateReceiptPDF); 
+            if (bulkPrintButton) bulkPrintButton.addEventListener('click', handleGenerateMultiplePDF);
+            if (bulkReceiptsPrintButton) bulkReceiptsPrintButton.addEventListener('click', handleGenerateMultipleReceiptsPDF); 
+            if (bulkCaseNumbersInput) bulkCaseNumbersInput.addEventListener('input', convertToUppercase);
+
+            // Obsługa panelu slide-in
+            if (toggleSettingsButton) toggleSettingsButton.addEventListener('click', toggleSettings);
+            if (closeSettingsButton) closeSettingsButton.addEventListener('click', toggleSettings);
+            if (overlay) overlay.addEventListener('click', toggleSettings); 
+
+            // Dynamiczne bindowanie danych koperty
+            Object.values(inputs).forEach(input => {
+                if (input) {
+                    input.addEventListener('input', updatePreview);
+                    if (input.id !== 'uwagi_potwierdzenia') {
+                        input.addEventListener('input', convertToUppercase); 
+                    }
+                }
+            });
+            if (inputs.kod_pocztowy) {
+                inputs.kod_pocztowy.addEventListener('input', handlePostalCodeInput);
+            }
+            if (searchInput) {
+                 searchInput.addEventListener('input', convertToUppercase);
+            }
+
+            // Dynamiczne bindowanie ustawień strony
+            [
+                fontSizeInput, lineHeightInput, fontWeightSelect, 
+                numSprawyTopInput, numSprawyLeftInput, addressLeftInput, addressTopInput,
+                recNumSprawyTopInput, recNumSprawyLeftInput, recAdresatTopInput, recAdresatLeftInput,
+                recAdresCz1TopInput, recAdresCz1LeftInput, recAdresCz2TopInput, recAdresCz2LeftInput,
+                recKodPocztaTopInput, recKodPocztaLeftInput, recUwagiTopInput, recUwagiLeftInput
+            ].forEach(input => {
+                if (input) input.addEventListener('input', updatePreview);
+            });
+
+            // Przyciski Firebase (Dane Koperty)
+            if (saveButton) saveButton.addEventListener('click', handleSave);
+            if (searchButton) searchButton.addEventListener('click', handleSearch);
+            if (savePostOfficeButton) savePostOfficeButton.addEventListener('click', handleSavePostOffice);
+            if (copySupportAddressButton) copySupportAddressButton.addEventListener('click', syncSupportToEnvelope); 
+
+            // Przycisk Firebase (Ustawienia)
+            if (saveSettingsButton) saveSettingsButton.addEventListener('click', handleSaveSettings);
+
+            // Listenery dla modala szablonów (Koperty)
+            if (manageTemplatesButton) manageTemplatesButton.addEventListener('click', openTemplateModal);
+            if (closeTemplateModalButton) closeTemplateModalButton.addEventListener('click', closeTemplateModal);
+            if (templateModalOverlay) templateModalOverlay.addEventListener('click', closeTemplateModal);
+            if (saveTemplateButton) saveTemplateButton.addEventListener('click', handleSaveTemplate);
+            if (clearTemplateFormButton) clearTemplateFormButton.addEventListener('click', clearTemplateForm);
+            if (selectTemplateDropdown) selectTemplateDropdown.addEventListener('change', handleTemplateSelect);
+
+            // === Listenery dla Zakładek ===
+            if (tabButtonEnvelopes) tabButtonEnvelopes.addEventListener('click', () => switchTab('envelopes'));
+            if (tabButtonSupport) tabButtonSupport.addEventListener('click', () => switchTab('support'));
+
+            // === NOWE: Listenery dla Formularza Odpowiedzi ===
+            if (odpowiedzFields.kod_pocztowy) {
+                 odpowiedzFields.kod_pocztowy.addEventListener('input', handleSupportPostalCodeInput);
+            }
+            if (odpowiedzButtons.searchByOrzeczenie) odpowiedzButtons.searchByOrzeczenie.addEventListener('click', handleSearchByOrzeczenie);
+            if (odpowiedzButtons.searchBySprawaOdpowiedz) odpowiedzButtons.searchBySprawaOdpowiedz.addEventListener('click', handleSearchBySprawaOdpowiedz);
+            if (odpowiedzButtons.saveOdpowiedz) odpowiedzButtons.saveOdpowiedz.addEventListener('click', handleSaveOdpowiedz);
+            if (odpowiedzButtons.generateOdpowiedzPdf) odpowiedzButtons.generateOdpowiedzPdf.addEventListener('click', handleGenerateOdpowiedzPdf);
+            if (odpowiedzButtons.newOdpowiedz) odpowiedzButtons.newOdpowiedz.addEventListener('click', clearOdpowiedzForm); 
+
+            // === NOWE: Listenery dla Szablonów Podstaw Prawnych ===
+            if (toggleLegalBasisTemplateEditorButton) toggleLegalBasisTemplateEditorButton.addEventListener('click', toggleLegalBasisTemplateEditor);
+            if (saveLegalBasisTemplateButton) saveLegalBasisTemplateButton.addEventListener('click', handleSaveLegalBasisTemplate);
+            if (clearLegalBasisTemplateFormButton) clearLegalBasisTemplateFormButton.addEventListener('click', clearLegalBasisTemplateForm);
+
+
+            // === NOWE: Formatowanie dla pól formularza odpowiedzi ===
+            const uppercaseOdpowiedzFields = ['odp_numer_sprawy', 'odp_numer_orzeczenia_search', 'odp_numer_wniosku', 'odp_numer_orzeczenia'];
+            const titleCaseOdpowiedzFields = ['odp_adresat', 'odp_adres_cz1', 'odp_poczta', 'odp_osoby', 'odp_stopien_czy_niepelnosprawnosc'];
+            const specialFormatOdpowiedzFields = { 'odp_adres_cz2': formatAddressLine2 };
+
+            Object.keys(odpowiedzFields).forEach(key => {
+                const input = odpowiedzFields[key];
+                const id = input.id;
+
+                if (input.type === 'date' || input.tagName === 'SELECT') {
+                    return; 
+                }
+                
+                if (uppercaseOdpowiedzFields.includes(id)) {
+                    input.addEventListener('input', convertToUppercase);
+                } 
+                else if (id === 'odp_kod_pocztowy') {
+                     input.addEventListener('input', convertToUppercase);
+                }
+                else if (specialFormatOdpowiedzFields[id]) {
+                    input.addEventListener('input', (e) => {
+                        const start = e.target.selectionStart;
+                        const end = e.target.selectionEnd;
+                        e.target.value = specialFormatOdpowiedzFields[id](e.target.value);
+                        e.target.setSelectionRange(start, end);
+                    });
+                } 
+                else if (titleCaseOdpowiedzFields.includes(id)) {
+                     input.addEventListener('input', (e) => {
+                        const start = e.target.selectionStart;
+                        const end = e.target.selectionEnd;
+                        e.target.value = toTitleCase(e.target.value);
+                        e.target.setSelectionRange(start, end);
+                    });
+                }
+                // Reszta (np. pesel, podstawa_prawna) pozostaje 'no-uppercase' bez specjalnego formatowania
+            });
+        }
+
+        // --- GŁÓWNA LOGIKA STARTOWA ---
+
+        initializeUIListeners();
+        
+        if (loginButton) loginButton.addEventListener('click', handleLogin);
+        if (registerButton) registerButton.addEventListener('click', handleRegister);
+        if (anonymousLoginButton) anonymousLoginButton.addEventListener('click', handleAnonymousLogin);
+        if (logoutButton) logoutButton.addEventListener('click', handleLogout);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                
+                // Definicje kolekcji
+                envelopesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'envelopes');
+                settingsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global_layout');
+                templatesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'templates');
+                postOfficesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'post_offices');
+                odpowiedziCollection = collection(db, 'artifacts', appId, 'public', 'data', 'odpowiedzi'); // NOWA KOLEKCJA
+                legalBasisTemplatesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'legal_basis_templates'); // NOWA
+                
+                userEmailDisplay.textContent = user.isAnonymous ? "UŻYTKOWNIK ANONIMOWY" : user.email.toUpperCase();
+                
+                appContainer.classList.remove('hidden');
+                authContainer.classList.add('hidden');
+                
+                loadSettings();
+                loadTemplates();
+                loadLegalBasisTemplates(); // NOWA
+                switchTab('envelopes'); 
+
+            } else {
+                userId = null;
+                envelopesCollection = null;
+                settingsDocRef = null; 
+                templatesCollection = null; 
+                postOfficesCollection = null; 
+                odpowiedziCollection = null; // Wyczyść
+                legalBasisTemplatesCollection = null; // NOWA
+
+                if (templatesSnapshotUnsubscribe) {
+                    templatesSnapshotUnsubscribe();
+                    templatesSnapshotUnsubscribe = null;
+                }
+                if (legalBasisTemplatesSnapshotUnsubscribe) { // NOWA
+                    legalBasisTemplatesSnapshotUnsubscribe();
+                    legalBasisTemplatesSnapshotUnsubscribe = null;
+                }
+                allTemplates = {}; 
+                allLegalBasisTemplates = {}; // NOWA
+
+                appContainer.classList.add('hidden');
+                authContainer.classList.remove('hidden');
+                userEmailDisplay.textContent = "";
+                clearForm(); 
+                clearOdpowiedzForm(); // Wyczyść też nowy formularz
+            }
+        });
+
+        if (initialAuthToken) {
+            signInWithCustomToken(auth, initialAuthToken).catch(error => {
+                console.error("BŁĄD LOGOWANIA TOKENEM:", error);
+            });
+        }
+        
+        updateSettingsInputs(); 
+
+    </script>
+</body>
+</html>
