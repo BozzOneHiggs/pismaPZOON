@@ -187,6 +187,9 @@
                 <button id="tabButtonSupport" class="tab-button">
                     WNIOSKI O WSPARCIE
                 </button>
+                <button id="tabButtonResponse" class="tab-button">
+                    ODPOWIEDŹ NA WNIOSKI
+                </button>
             </nav>
         </div>
 
@@ -555,6 +558,180 @@
             </div>
         </div> <!-- Koniec supportApplicationTab -->
 
+        <!-- 3. NOWA ZAWARTOŚĆ ZAKŁADKI: ODPOWIEDŹ NA WNIOSKI -->
+        <div id="responseApplicationTab" class="hidden">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 mt-4">
+
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md space-y-4" id="responseForm">
+                        <h2 class="text-2xl font-bold text-gray-800">ODPOWIEDŹ NA WNIOSEK O UDOSTĘPNIENIE DANYCH</h2>
+                        <h3 class="text-xl font-semibold mb-4">WPROWADŹ DANE</h3>
+
+                        <div id="odpowiedzMessageArea" class="h-6 text-sm font-medium text-green-600"></div>
+
+                        <div class="bg-gray-50 p-4 rounded-md space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                <div>
+                                    <label for="odp_numer_orzeczenia_search" class="block text-sm font-medium text-gray-700">NUMER ORZECZENIA (DO WYSZUKANIA ADRESU)</label>
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="odp_numer_orzeczenia_search" placeholder="Wpisz numer sprawy z bazy kopert..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                        <button id="searchByOrzeczenieButton" class="mt-1 bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700 transition-colors whitespace-nowrap">SZUKAJ ADRESU</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="odp_numer_sprawy" class="block text-sm font-medium text-gray-700">NUMER SPRAWY (ODPOWIEDZI)</label>
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="odp_numer_sprawy" placeholder="Wpisz numer sprawy odpowiedzi..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                        <button id="searchBySprawaOdpowiedzButton" class="mt-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">WCZYTAJ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE DOKUMENTU</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="odp_data_pisma" class="block text-sm font-medium text-gray-700">DATA PISMA {DATA_PISMA}</label>
+                                <input type="date" id="odp_data_pisma" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_wniosku" class="block text-sm font-medium text-gray-700">DATA WNIOSKU {DATA_WNIOSKU}</label>
+                                <input type="date" id="odp_data_wniosku" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_wplywu" class="block text-sm font-medium text-gray-700">DATA WPŁYWU {DATA_WPŁYWU}</label>
+                                <input type="date" id="odp_data_wplywu" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="odp_numer_wniosku" class="block text-sm font-medium text-gray-700">NUMER WNIOSKU {NUMER_WNIOSKU}</label>
+                            <input type="text" id="odp_numer_wniosku" placeholder="Np. WN/123/2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                        </div>
+
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">ADRESAT (NA LIŚCIE)</h3>
+                         <div>
+                            <label for="odp_adresat" class="block text-sm font-medium text-gray-700">ADRESAT {ADRESAT}</label>
+                            <input type="text" id="odp_adresat" placeholder="Np. SĄD REJONOWY W..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div>
+                            <label for="odp_adres_cz1" class="block text-sm font-medium text-gray-700">ADRES (LINIA 1) {ADRES_CZ1}</label>
+                            <input type="text" id="odp_adres_cz1" placeholder="Np. UL. KOŚCIUSZKI 10" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div>
+                            <label for="odp_adres_cz2" class="block text-sm font-medium text-gray-700">ADRES (LINIA 2) {ADRES_CZ2}</label>
+                            <input type="text" id="odp_adres_cz2" placeholder="Opcjonalnie" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-1">
+                                <label for="odp_kod_pocztowy" class="block text-sm font-medium text-gray-700">KOD POCZTOWY {KOD_POCZTOWY}</label>
+                                <input type="text" id="odp_kod_pocztowy" placeholder="XX-XXX" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div class="col-span-2">
+                                <label for="odp_poczta" class="block text-sm font-medium text-gray-700">POCZTA {POCZTA}</label>
+                                <input type="text" id="odp_poczta" list="supportPostOfficeList" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE OSOBY, KTÓREJ DOTYCZY WNIOSEK</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                             <div class="md:col-span-1">
+                                <label for="odp_pani_pana" class="block text-sm font-medium text-gray-700">PANI / PANA {PANI_PANA}</label>
+                                <select id="odp_pani_pana" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                                    <option value="Pani">Pani</option>
+                                    <option value="Pana">Pana</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="odp_osoby" class="block text-sm font-medium text-gray-700">OSOBA (ODMIENIONE) {OSOBY}</label>
+                                <input type="text" id="odp_osoby" placeholder="Np. ANNY KOWALSKIEJ" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+                        <div>
+                             <label for="odp_pesel" class="block text-sm font-medium text-gray-700">PESEL {PESEL}</label>
+                             <input type="text" id="odp_pesel" placeholder="XXXXXXXXXXX" maxlength="11" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">DANE ORZECZENIA</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="odp_stopien_czy_niepelnosprawnosc" class="block text-sm font-medium text-gray-700">{STOPIEŃ_CZY_NIEPEŁNOSPRAWNOŚĆ}</label>
+                                <input type="text" id="odp_stopien_czy_niepelnosprawnosc" placeholder="Np. stopniu niepełnosprawności" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_numer_orzeczenia" class="block text-sm font-medium text-gray-700">NUMER ORZECZENIA {NUMER_ORZECZENIA}</label>
+                                <input type="text" id="odp_numer_orzeczenia" placeholder="Np. PCPR/123/2025" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                            </div>
+                             <div>
+                                <label for="odp_data_orzeczenia" class="block text-sm font-medium text-gray-700">DATA ORZECZENIA {DATA_ORZECZENIA}</label>
+                                <input type="date" id="odp_data_orzeczenia" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                            <div>
+                                <label for="odp_data_prawomocnosci" class="block text-sm font-medium text-gray-700">DATA PRAWOMOCNOŚCI {DATA_PRAWOMOCNOŚCI}</label>
+                                <input type="date" id="odp_data_prawomocnosci" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold mb-2 pt-4 border-t">PODSTAWA PRAWNA</h3>
+                         <div>
+                            <label for="odp_podstawa_prawna" class="block text-sm font-medium text-gray-700">PODSTAWA PRAWNA {PODSTAWA_PRAWNA}</label>
+                            <select id="odp_podstawa_prawna" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                                <option value="">-- WYBIERZ PODSTAWĘ PRAWNĄ --</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t">
+                            <button id="toggleLegalBasisTemplateEditorButton" class="w-full text-left text-sm font-semibold text-gray-700 flex justify-between items-center">
+                                <span>ZARZĄDZAJ SZABLONAMI PODSTAW PRAWNYCH</span>
+                                <svg id="legalBasisTemplateChevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 transition-transform">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            <div id="legalBasisTemplateEditor" class="hidden space-y-4 pt-4">
+                                <div id="legalBasisTemplateMessageArea" class="h-6 text-sm font-medium text-red-600 text-center mb-2"></div>
+
+                                <div class="space-y-2 p-4 border rounded-md bg-gray-50">
+                                    <input type="hidden" id="legalBasisTemplateEditId">
+                                    <div>
+                                        <label for="legalBasisTemplateNameInput" class="block text-xs font-medium text-gray-700">NAZWA SZABLONU (NP. "ART. 65 KPA")</label>
+                                        <input type="text" id="legalBasisTemplateNameInput" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                    </div>
+                                    <div>
+                                        <label for="legalBasisTemplateContentInput" class="block text-sm font-medium text-gray-700">TREŚĆ SZABLONU (PODSTAWA PRAWNA)</label>
+                                        <textarea id="legalBasisTemplateContentInput" rows="4" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase"></textarea>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button id="saveLegalBasisTemplateButton" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">ZAPISZ SZABLON</button>
+                                        <button id="clearLegalBasisTemplateFormButton" class="w-auto bg-gray-300 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-400 text-sm">WYCZYŚĆ</button>
+                                    </div>
+                                </div>
+
+                                <h3 class="text-sm font-semibold pt-2 border-t">ISTNIEJĄCE SZABLONY</h3>
+                                <div id="legalBasisTemplateList" class="space-y-2 max-h-72 overflow-y-auto border p-2 rounded-md bg-white">
+                                     <p class="text-gray-500 text-sm">ŁADOWANIE SZABLONÓW...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="lg:col-span-5 space-y-6">
+                     <div class="bg-white p-6 rounded-lg shadow-md space-y-4">
+                        <h2 class="text-xl font-semibold mb-4">AKCJE</h2>
+                        <div class="space-y-3">
+                            <button id="newOdpowiedzButton" class="w-full bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors shadow-lg text-sm">
+                                NOWA ODPOWIEDŹ (WYCZYŚĆ FORMULARZ)
+                            </button>
+
+                            <button id="saveOdpowiedzButton" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition-colors shadow-lg">ZAPISZ W BAZIE</button>
+                            <button id="generateOdpowiedzPdfButton" class="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors shadow-lg">GENERUJ PDF ODPOWIEDZI</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <div id="bulkPrintContainer" style="display: none;"></div>
         
@@ -718,11 +895,15 @@
         let supportApplicationsCollection; // NOWA: Referencja do wniosków o wsparcie
         let legalBasisDocRef; // NOWA: Referencja do podstaw prawnych
         let attachmentsCollection; // NOWA: Referencja do szablonów załączników
+        let odpowiedziCollection; // NOWA: Kolekcja dla odpowiedzi
+        let legalBasisTemplatesCollection; // NOWA: Kolekcja dla szablonów podstaw prawnych
         
-        let templatesSnapshotUnsubscribe = null; // NOWA: Do czyszczenia listenera szablonów
-        let attachmentsSnapshotUnsubscribe = null; // NOWA: Do czyszczenia listenera załączników
-        let allTemplates = {}; // NOWA: Cache dla szablonów {id: data}
-        let allAttachmentTemplates = []; // NOWA: Cache dla nazw załączników [{id, name}, ...]
+        let templatesSnapshotUnsubscribe = null;
+        let attachmentsSnapshotUnsubscribe = null;
+        let legalBasisTemplatesSnapshotUnsubscribe = null; // NOWA
+        let allTemplates = {};
+        let allAttachmentTemplates = [];
+        let allLegalBasisTemplates = {}; // NOWA
 
         // NOWE: Domyślne podstawy prawne
         let globalLegalBasis = {
@@ -858,8 +1039,56 @@
         // === NOWE: Elementy DOM - Zakładki ===
         const tabButtonEnvelopes = document.getElementById('tabButtonEnvelopes');
         const tabButtonSupport = document.getElementById('tabButtonSupport');
+        const tabButtonResponse = document.getElementById('tabButtonResponse'); // NOWY PRZYCISK ZAKŁADKI
         const envelopeGeneratorTab = document.getElementById('envelopeGeneratorTab');
         const supportApplicationTab = document.getElementById('supportApplicationTab');
+        const responseApplicationTab = document.getElementById('responseApplicationTab'); // NOWA ZAWARTOŚĆ ZAKŁADKI
+
+        // === NOWE: Elementy DOM - Formularz Odpowiedzi (z wnioski_udost.html) ===
+        const odpowiedzFields = {
+            numer_orzeczenia_search: document.getElementById('odp_numer_orzeczenia_search'),
+            numer_sprawy: document.getElementById('odp_numer_sprawy'),
+            data_pisma: document.getElementById('odp_data_pisma'),
+            data_wniosku: document.getElementById('odp_data_wniosku'),
+            data_wplywu: document.getElementById('odp_data_wplywu'),
+            numer_wniosku: document.getElementById('odp_numer_wniosku'),
+            adresat: document.getElementById('odp_adresat'),
+            adres_cz1: document.getElementById('odp_adres_cz1'),
+            adres_cz2: document.getElementById('odp_adres_cz2'),
+            kod_pocztowy: document.getElementById('odp_kod_pocztowy'),
+            poczta: document.getElementById('odp_poczta'),
+            pani_pana: document.getElementById('odp_pani_pana'),
+            osoby: document.getElementById('odp_osoby'),
+            pesel: document.getElementById('odp_pesel'),
+            stopien_czy_niepelnosprawnosc: document.getElementById('odp_stopien_czy_niepelnosprawnosc'),
+            numer_orzeczenia: document.getElementById('odp_numer_orzeczenia'),
+            data_orzeczenia: document.getElementById('odp_data_orzeczenia'),
+            data_prawomocnosci: document.getElementById('odp_data_prawomocnosci'),
+            podstawa_prawna: document.getElementById('odp_podstawa_prawna'),
+        };
+
+        const odpowiedzButtons = {
+            searchByOrzeczenie: document.querySelector('#responseApplicationTab #searchByOrzeczenieButton'),
+            searchBySprawaOdpowiedz: document.getElementById('searchBySprawaOdpowiedzButton'),
+            saveOdpowiedz: document.getElementById('saveOdpowiedzButton'),
+            generateOdpowiedzPdf: document.getElementById('generateOdpowiedzPdfButton'),
+            newOdpowiedz: document.getElementById('newOdpowiedzButton')
+        };
+
+        const odpowiedzMessageArea = document.getElementById('odpowiedzMessageArea');
+
+        // === NOWE: Elementy DOM - Szablony Podstaw Prawnych (z wnioski_udost.html) ===
+        const toggleLegalBasisTemplateEditorButton = document.getElementById('toggleLegalBasisTemplateEditorButton');
+        const legalBasisTemplateChevron = document.getElementById('legalBasisTemplateChevron');
+        const legalBasisTemplateEditor = document.getElementById('legalBasisTemplateEditor');
+        const legalBasisTemplateMessageArea = document.getElementById('legalBasisTemplateMessageArea');
+        const legalBasisTemplateEditId = document.getElementById('legalBasisTemplateEditId');
+        const legalBasisTemplateNameInput = document.getElementById('legalBasisTemplateNameInput');
+        const legalBasisTemplateContentInput = document.getElementById('legalBasisTemplateContentInput');
+        const saveLegalBasisTemplateButton = document.getElementById('saveLegalBasisTemplateButton');
+        const clearLegalBasisTemplateFormButton = document.getElementById('clearLegalBasisTemplateFormButton');
+        const legalBasisTemplateList = document.getElementById('legalBasisTemplateList');
+
 
         // === NOWE: Elementy DOM - Formularz Wsparcia ===
         const supportFields = {
@@ -1006,6 +1235,22 @@
             legalBasisMessageArea.textContent = text.toUpperCase();
             legalBasisMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
             setTimeout(() => { legalBasisMessageArea.textContent = ''; }, 3000);
+        }
+
+        // NOWA: Funkcja komunikatów dla szablonów podstaw prawnych
+        function showLegalBasisTemplateMessage(text, isError = false) {
+            if (!legalBasisTemplateMessageArea) return;
+            legalBasisTemplateMessageArea.textContent = text.toUpperCase();
+            legalBasisTemplateMessageArea.className = `h-6 text-sm font-medium text-center ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { legalBasisTemplateMessageArea.textContent = ''; }, 3000);
+        }
+
+        // NOWA: Funkcja komunikatów dla zakładki Odpowiedzi
+        function showOdpowiedzMessage(text, isError = false) {
+            if (!odpowiedzMessageArea) return;
+            odpowiedzMessageArea.textContent = text.toUpperCase();
+            odpowiedzMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { odpowiedzMessageArea.textContent = ''; }, 3000);
         }
 
         // === NOWE: Funkcje formatowania "Title Case" ===
@@ -1880,24 +2125,419 @@
             }
         }
 
-        // --- NOWE FUNKCJE: ZAKŁADKA WNIOSKÓW O WSPARCIE ---
+        // --- NOWE FUNKCJE: ZAKŁADKA ODPOWIEDZI ---
 
-        // Przełączanie zakładek
-        function switchTab(tabToActivate) {
-            if (tabToActivate === 'envelopes') {
-                envelopeGeneratorTab.classList.remove('hidden');
-                supportApplicationTab.classList.add('hidden');
-                tabButtonEnvelopes.classList.add('active');
-                tabButtonSupport.classList.remove('active');
-                
-                // NOWE: Zsynchronizuj dane z formularza wsparcia do generatora kopert
-                syncSupportToEnvelope(); 
+        // Wyszukiwanie adresu z bazy kopert (dla zakładki Odpowiedzi)
+        async function handleSearchByOrzeczenieForOdpowiedz() {
+            if (!userId || !envelopesCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            const orzeczenieNumber = odpowiedzFields.numer_orzeczenia_search.value;
+            if (!orzeczenieNumber) {
+                showOdpowiedzMessage("WPISZ NUMER ORZECZENIA DO WYSZUKANIA.", true);
+                return;
+            }
 
-            } else if (tabToActivate === 'support') {
-                envelopeGeneratorTab.classList.add('hidden');
-                supportApplicationTab.classList.remove('hidden');
-                tabButtonEnvelopes.classList.remove('active');
-                tabButtonSupport.classList.add('active');
+            try {
+                const docRef = doc(envelopesCollection, orzeczenieNumber.toUpperCase());
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+
+                    // Wypełnij pola w formularzu odpowiedzi - bez formatowania "Title Case"
+                    odpowiedzFields.osoby.value = toTitleCase(data.adresat || '');
+                    odpowiedzFields.numer_orzeczenia.value = data.numer_sprawy || orzeczenieNumber.toUpperCase();
+
+                    // Wypełnij pesel jeśli istnieje (dla kompatybilności wstecznej)
+                    if(data.pesel) {
+                        odpowiedzFields.pesel.value = data.pesel;
+                    }
+
+                    showOdpowiedzMessage("DANE OSOBY I NR ORZECZENIA ZOSTAŁY WCZYTANE.", false);
+                } else {
+                    showOdpowiedzMessage("NIE ZNALEZIONO DANYCH DLA TEGO NUMERU.", true);
+                }
+            } catch (error) {
+                console.error("BŁĄD WYSZUKIWANIA PO NR ORZECZENIA (ODPOWIEDŹ):", error);
+                showOdpowiedzMessage(`BŁĄD WYSZUKIWANIA: ${error.message}`, true);
+            }
+        }
+
+
+        // Baza Kodów Pocztowych (Dla zakładki Odpowiedzi)
+        async function handleOdpowiedzPostalCodeInput() {
+            const supportPostOfficeList = document.getElementById('supportPostOfficeList');
+            if (!postOfficesCollection || !supportPostOfficeList) return;
+            const kodValue = odpowiedzFields.kod_pocztowy.value.toUpperCase().trim();
+            if (kodValue.length === 0) {
+                supportPostOfficeList.innerHTML = '';
+                return;
+            }
+            if (kodValue.match(/^\d{2}-\d{3}$/)) {
+                try {
+                    const q = query(postOfficesCollection, where("kod", "==", kodValue));
+                    const querySnapshot = await getDocs(q);
+                    supportPostOfficeList.innerHTML = '';
+                    let results = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if(data.poczta) {
+                            results.push(data.poczta);
+                        }
+                    });
+                    const uniqueResults = [...new Set(results)];
+                    if (uniqueResults.length > 0) {
+                        uniqueResults.forEach(poczta => {
+                            const option = document.createElement('option');
+                            option.value = toTitleCase(poczta);
+                            supportPostOfficeList.appendChild(option);
+                        });
+                        if (uniqueResults.length === 1) {
+                            odpowiedzFields.poczta.value = toTitleCase(uniqueResults[0]);
+                        }
+                    }
+                } catch (error) {
+                    console.error("BŁĄD WYSZUKIWANIA KODU POCZTOWEGO (ODPOWIEDZI):", error);
+                    showOdpowiedzMessage("BŁĄD WYSZUKIWANIA KODU", true);
+                }
+            } else {
+                 supportPostOfficeList.innerHTML = '';
+            }
+        }
+
+        // NOWA FUNKCJA: Czyszczenie formularza odpowiedzi
+        function clearOdpowiedzForm() {
+            Object.values(odpowiedzFields).forEach(input => {
+                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT') {
+                    input.value = '';
+                }
+            });
+            if (odpowiedzFields.pani_pana) odpowiedzFields.pani_pana.value = 'Pani';
+            showOdpowiedzMessage("FORMULARZ WYCZYSZCZONY. GOTOWY NA NOWĄ ODPOWIEDŹ.", false);
+        }
+
+        // NOWA FUNKCJA: Kopiowanie danych z Odpowiedzi do Kopert
+        function syncResponseToEnvelope() {
+            if (!odpowiedzFields.adresat.value && !odpowiedzFields.adres_cz1.value && !odpowiedzFields.numer_sprawy.value) {
+                // Nie pokazuj komunikatu, jeśli nic nie ma do skopiowania
+                return;
+            }
+            inputs.numer_sprawy.value = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            inputs.adresat.value = odpowiedzFields.adresat.value.toUpperCase();
+            inputs.adres_cz1.value = odpowiedzFields.adres_cz1.value.toUpperCase();
+            inputs.adres_cz2.value = odpowiedzFields.adres_cz2.value.toUpperCase();
+            inputs.kod_pocztowy.value = odpowiedzFields.kod_pocztowy.value.toUpperCase();
+            inputs.poczta.value = odpowiedzFields.poczta.value.toUpperCase();
+            updatePreview();
+            showMessage("DANE ADRESOWE SKOPIOWANE Z ZAKŁADKI ODPOWIEDZI.", false);
+            if (inputs.kod_pocztowy.value) {
+                handlePostalCodeInput();
+            }
+        }
+
+        // Zapisywanie danych odpowiedzi
+        async function handleSaveOdpowiedz() {
+            if (!userId || !odpowiedziCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            const numerSprawy = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            if (!numerSprawy) {
+                showOdpowiedzMessage("NUMER SPRAWY (ODPOWIEDZI) JEST WYMAGANY.", true);
+                return;
+            }
+
+            const data = {};
+            for (const key in odpowiedzFields) {
+                if (odpowiedzFields[key] && typeof odpowiedzFields[key].value !== 'undefined') {
+                    // pola _search nie są zapisywane
+                    if (key.endsWith('_search')) continue;
+
+                    const field = odpowiedzFields[key];
+                    if (field.classList.contains('no-uppercase')) {
+                        data[key] = field.value; // Zapisz bez zmiany wielkości liter
+                    } else {
+                        data[key] = field.value.toUpperCase();
+                    }
+                }
+            }
+            data.timestamp = new Date().toISOString();
+
+            try {
+                const docRef = doc(odpowiedziCollection, numerSprawy);
+                await setDoc(docRef, data);
+                showOdpowiedzMessage("DANE ODPOWIEDZI ZOSTAŁY ZAPISANE.", false);
+            } catch (error) {
+                console.error("BŁĄD ZAPISU ODPOWIEDZI:", error);
+                showOdpowiedzMessage(`BŁĄD ZAPISU: ${error.message}`, true);
+            }
+        }
+
+        // Wczytywanie danych odpowiedzi
+        async function handleSearchBySprawaOdpowiedz() {
+            if (!userId || !odpowiedziCollection) {
+                showOdpowiedzMessage("BŁĄD: BRAK POŁĄCZENIA Z BAZĄ DANYCH.", true);
+                return;
+            }
+            const numerSprawy = odpowiedzFields.numer_sprawy.value.toUpperCase();
+            if (!numerSprawy) {
+                showOdpowiedzMessage("WPISZ NUMER SPRAWY DO WCZYTANIA.", true);
+                return;
+            }
+
+            try {
+                const docRef = doc(odpowiedziCollection, numerSprawy);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    for (const key in odpowiedzFields) {
+                        if (odpowiedzFields[key] && typeof data[key] !== 'undefined') {
+                            odpowiedzFields[key].value = data[key];
+                        }
+                    }
+                    showOdpowiedzMessage("DANE ODPOWIEDZI ZOSTAŁY WCZYTANE.", false);
+                } else {
+                    showOdpowiedzMessage("NIE ZNALEZIONO SPRAWY O PODANYM NUMERZE.", true);
+                }
+            } catch (error) {
+                console.error("BŁĄD WCZYTYWANIA ODPOWIEDZI:", error);
+                showOdpowiedzMessage(`BŁĄD WCZYTYWANIA: ${error.message}`, true);
+            }
+        }
+
+        // Generowanie PDF odpowiedzi
+        function handleGenerateOdpowiedzPdf() {
+            const data = {};
+            for (const key in odpowiedzFields) {
+                if (odpowiedzFields[key] && typeof odpowiedzFields[key].value !== 'undefined') {
+                    const field = odpowiedzFields[key];
+                    const placeholderKey = key.toUpperCase();
+                    if (key.includes('data_')) {
+                        data[placeholderKey] = formatDateDDMMYYYY(field.value);
+                    } else {
+                        data[placeholderKey] = field.value;
+                    }
+                }
+            }
+
+            // Pobierz treść wybranej podstawy prawnej
+            const selectedTemplateId = odpowiedzFields.podstawa_prawna.value;
+            data.PODSTAWA_PRAWNA = allLegalBasisTemplates[selectedTemplateId] ? allLegalBasisTemplates[selectedTemplateId].content : '________________';
+
+
+            // Definicja dokumentu PDF
+            const docDefinition = {
+                 pageSize: 'A4',
+                pageMargins: [72, 60, 72, 72],
+                header: function(currentPage, pageCount, pageSize) {
+                    if (!topImageBase64) return null;
+                    const cm_to_pt = 28.35;
+                    return {
+                        image: topImageBase64,
+                        width: (pageSize.width - 144) + (2 * cm_to_pt),
+                        alignment: 'center',
+                        absolutePosition: { x: 0, y: 0 }
+                    };
+                },
+                content: [
+                    {
+                        text: `Nowy Dwór Mazowiecki, dnia ${data.ODP_DATA_PISMA} r.`,
+                        style: 'normalText',
+                        alignment: 'right',
+                        marginTop: 55
+                    },
+                    {
+                        text: data.ODP_NUMER_SPRAWY,
+                        style: 'normalText',
+                        alignment: 'left',
+                        marginBottom: 15
+                    },
+                     {
+                        stack: [
+                            { text: data.ODP_ADRESAT, style: 'addressText' },
+                            { text: data.ODP_ADRES_CZ1, style: 'addressText' },
+                            data.ODP_ADRES_CZ2 ? { text: data.ODP_ADRES_CZ2, style: 'addressText' } : null,
+                            { text: `${data.ODP_KOD_POCZTOWY} ${data.ODP_POCZTA}`, style: 'addressText' }
+                        ].filter(Boolean),
+                        alignment: 'right',
+                        margin: [0, 20, 0, 20]
+                    },
+                    {
+                        text: [
+                            '           W odpowiedzi na wniosek z dnia ',
+                            { text: `${data.ODP_DATA_WNIOSKU} r.`, bold: true },
+                            ` (data wpływu: ${data.ODP_DATA_WPLYWU} r.), znak: ${data.ODP_NUMER_WNIOSKU}, o udostępnienie danych z prowadzonego przez tut. Zespół rejestru osób posiadających ważne orzeczenie o niepełnosprawności lub stopniu niepełnosprawności, dotyczących `,
+                            { text: `${data.ODP_PANI_PANA} ${data.ODP_OSOBY}`, bold: true },
+                            ` (PESEL: ${data.ODP_PESEL}) uprzejmie informuję, iż w zasobach archiwalnych Powiatowego Zespołu do Spraw Orzekania o Niepełnosprawności w Nowym Dworze Mazowieckim figuruje orzeczenie o `,
+                            { text: data.ODP_STOPIEN_CZY_NIEPELNOSPRAWNOSC, bold: true },
+                            ' wydane przez tutejszy Zespół pod numerem ',
+                            { text: data.ODP_NUMER_ORZECZENIA, bold: true },
+                            ' z dnia ',
+                            { text: `${data.ODP_DATA_ORZECZENIA} r.`, bold: true },
+                            ' Data, od której orzeczenie stało się prawomocne to ',
+                            { text: `${data.ODP_DATA_PRAWOMOCNOSCI} r.`, bold: true },
+                            '.'
+                        ],
+                        style: 'justifiedText',
+                        marginBottom: 20
+                    },
+                    {
+                        text: [
+                            'Podstawa prawna: ',
+                            { text: data.PODSTAWA_PRAWNA, bold: true }
+                        ],
+                        style: 'justifiedText'
+                    },
+                ],
+                styles: {
+                    normalText: { fontSize: 11, lineHeight: 1.2, font: 'Roboto' },
+                    addressText: { fontSize: 11, lineHeight: 1.2, font: 'Roboto' },
+                    justifiedText: { fontSize: 11, lineHeight: 1.2, font: 'Roboto', alignment: 'justify' }
+                },
+                defaultStyle: { font: 'Roboto' }
+            };
+
+            try {
+                pdfMake.createPdf(docDefinition).download(`odpowiedz_${data.ODP_NUMER_SPRAWY}.pdf`);
+                showOdpowiedzMessage("PDF ODPOWIEDZI WYGENEROWANY.", false);
+            } catch (error) {
+                 console.error("BŁĄD GENEROWANIA PDF (ODPOWIEDŹ):", error);
+                 showOdpowiedzMessage(`BŁĄD GENEROWANIA PDF: ${error.message}`, true);
+            }
+        }
+
+        // --- NOWE FUNKCJE: Zarządzanie szablonami podstaw prawnych ---
+
+        function toggleLegalBasisTemplateEditor() {
+            if(legalBasisTemplateEditor) legalBasisTemplateEditor.classList.toggle('hidden');
+            if(legalBasisTemplateChevron) legalBasisTemplateChevron.classList.toggle('rotate-180');
+        }
+
+        function clearLegalBasisTemplateForm() {
+            if(legalBasisTemplateNameInput) legalBasisTemplateNameInput.value = '';
+            if(legalBasisTemplateContentInput) legalBasisTemplateContentInput.value = '';
+            if(legalBasisTemplateEditId) legalBasisTemplateEditId.value = '';
+        }
+
+        async function loadLegalBasisTemplates() {
+            if (!legalBasisTemplatesCollection) return;
+
+            if (legalBasisTemplatesSnapshotUnsubscribe) {
+                legalBasisTemplatesSnapshotUnsubscribe();
+            }
+
+            legalBasisTemplatesSnapshotUnsubscribe = onSnapshot(query(legalBasisTemplatesCollection), (querySnapshot) => {
+                allLegalBasisTemplates = {};
+                const templates = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    templates.push({ id: doc.id, ...data });
+                    allLegalBasisTemplates[doc.id] = data;
+                });
+                templates.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                populateLegalBasisTemplateList(templates);
+                populateLegalBasisDropdown(templates);
+            }, (error) => {
+                console.error("BŁĄD ŁADOWANIA SZABLONÓW PODSTAW PRAWNYCH: ", error);
+                if(legalBasisTemplateList) legalBasisTemplateList.innerHTML = '<p class="text-red-500 text-sm">BŁĄD ŁADOWANIA SZABLONÓW.</p>';
+            });
+        }
+
+        function populateLegalBasisTemplateList(templates) {
+            if (!legalBasisTemplateList) return;
+            legalBasisTemplateList.innerHTML = '';
+            if (templates.length === 0) {
+                legalBasisTemplateList.innerHTML = '<p class="text-gray-500 text-sm">BRAK ZAPISANYCH SZABLONÓW.</p>';
+                return;
+            }
+
+            templates.forEach(template => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded-md border text-sm';
+                div.innerHTML = `
+                    <span class="font-medium">${template.name}</span>
+                    <div class="space-x-2 flex-shrink-0">
+                        <button class="edit-legal-basis-template-btn text-blue-600 hover:text-blue-800 font-medium" data-id="${template.id}">EDYTUJ</button>
+                        <button class="delete-legal-basis-template-btn text-red-600 hover:text-red-800 font-medium" data-id="${template.id}">USUŃ</button>
+                    </div>
+                `;
+                legalBasisTemplateList.appendChild(div);
+            });
+
+            legalBasisTemplateList.querySelectorAll('.edit-legal-basis-template-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleEditLegalBasisTemplate(btn.dataset.id));
+            });
+            legalBasisTemplateList.querySelectorAll('.delete-legal-basis-template-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleDeleteLegalBasisTemplate(btn.dataset.id));
+            });
+        }
+
+        function populateLegalBasisDropdown(templates) {
+            if (!odpowiedzFields.podstawa_prawna) return;
+            const dropdown = odpowiedzFields.podstawa_prawna;
+            dropdown.innerHTML = '<option value="">-- WYBIERZ PODSTAWĘ PRAWNĄ --</option>';
+            templates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = template.name;
+                dropdown.appendChild(option);
+            });
+        }
+
+        async function handleSaveLegalBasisTemplate() {
+            if (!legalBasisTemplatesCollection) return;
+
+            const name = legalBasisTemplateNameInput.value.toUpperCase();
+            const content = legalBasisTemplateContentInput.value;
+            const editId = legalBasisTemplateEditId.value;
+
+            if (!name || !content) {
+                showLegalBasisTemplateMessage("NAZWA I TREŚĆ SĄ WYMAGANE.", true);
+                return;
+            }
+
+            try {
+                if (editId) {
+                    const docRef = doc(legalBasisTemplatesCollection, editId);
+                    await setDoc(docRef, { name, content });
+                    showLegalBasisTemplateMessage("SZABLON ZAKTUALIZOWANY", false);
+                } else {
+                    await addDoc(legalBasisTemplatesCollection, { name, content });
+                    showLegalBasisTemplateMessage("SZABLON ZAPISANY", false);
+                }
+                clearLegalBasisTemplateForm();
+            } catch (error) {
+                console.error("BŁĄD ZAPISU SZABLONU PODSTAWY PRAWNEJ:", error);
+                showLegalBasisTemplateMessage("BŁĄD ZAPISU.", true);
+            }
+        }
+
+        function handleEditLegalBasisTemplate(id) {
+            const template = allLegalBasisTemplates[id];
+            if (template) {
+                legalBasisTemplateEditId.value = id;
+                legalBasisTemplateNameInput.value = template.name;
+                legalBasisTemplateContentInput.value = template.content;
+                showLegalBasisTemplateMessage("ZAŁADOWANO DO EDYCJI", false);
+            }
+        }
+
+        async function handleDeleteLegalBasisTemplate(id) {
+            if (!legalBasisTemplatesCollection) return;
+            if (!confirm(`Czy na pewno chcesz usunąć szablon "${allLegalBasisTemplates[id]?.name}"?`)) {
+                return;
+            }
+            try {
+                const docRef = doc(legalBasisTemplatesCollection, id);
+                await deleteDoc(docRef);
+                showLegalBasisTemplateMessage("SZABLON USUNIĘTY", false);
+                clearLegalBasisTemplateForm();
+            } catch (error) {
+                console.error("BŁĄD USUWANIA SZABLONU:", error);
+                showLegalBasisTemplateMessage("BŁĄD USUWANIA.", true);
             }
         }
         
@@ -1933,15 +2573,12 @@
         // NOWA FUNKCJA: Kopiowanie danych z Wniosków do Kopert
         function syncSupportToEnvelope() {
             // Sprawdź, czy kluczowe pola w formularzu wsparcia mają jakąś wartość
-            // ZMIANA: Sprawdzamy teraz 'numer_sprawy' zamiast 'numer_orzeczenia'
             if (!supportFields.imie_nazwisko.value && !supportFields.adres_cz1.value && !supportFields.numer_sprawy.value) {
                 // Formularz wsparcia jest pusty, nic nie rób.
-                showMessage("BRAK DANYCH W FORMULARZU ZAWIADOMIENIA DO SKOPIOWANIA.", true);
                 return;
             }
 
             // Dane istnieją. Skopiuj je i przekonwertuj na UPPERCASE dla zakładki kopert.
-            // ZMIANA: Mapowanie 'numer_sprawy' -> 'wsparcie_numer_sprawy'
             inputs.numer_sprawy.value = supportFields.numer_sprawy.value.toUpperCase();
             inputs.adresat.value = supportFields.imie_nazwisko.value.toUpperCase();
             inputs.adres_cz1.value = supportFields.adres_cz1.value.toUpperCase();
@@ -1951,7 +2588,7 @@
             
             // Po skopiowaniu, zaktualizuj podgląd koperty
             updatePreview();
-            showMessage("DANE ADRESOWE SKOPIOWANE Z ZAWIADOMIENIA.", false);
+            showMessage("DANE ADRESOWE SKOPIOWANE Z ZAKŁADKI WNIOSKÓW.", false);
             
             // Jeśli skopiowano kod pocztowy, spróbuj wyszukać pocztę
             if (inputs.kod_pocztowy.value) {
@@ -2894,6 +3531,21 @@
             // === NOWE: Listenery dla Zakładek ===
             if (tabButtonEnvelopes) tabButtonEnvelopes.addEventListener('click', () => switchTab('envelopes'));
             if (tabButtonSupport) tabButtonSupport.addEventListener('click', () => switchTab('support'));
+            if (tabButtonResponse) tabButtonResponse.addEventListener('click', () => switchTab('response'));
+
+            // === NOWE: Listenery dla Formularza Odpowiedzi ===
+            if(odpowiedzButtons.searchByOrzeczenie) odpowiedzButtons.searchByOrzeczenie.addEventListener('click', handleSearchByOrzeczenieForOdpowiedz);
+            if(odpowiedzButtons.searchBySprawaOdpowiedz) odpowiedzButtons.searchBySprawaOdpowiedz.addEventListener('click', handleSearchBySprawaOdpowiedz);
+            if(odpowiedzButtons.saveOdpowiedz) odpowiedzButtons.saveOdpowiedz.addEventListener('click', handleSaveOdpowiedz);
+            if(odpowiedzButtons.generateOdpowiedzPdf) odpowiedzButtons.generateOdpowiedzPdf.addEventListener('click', handleGenerateOdpowiedzPdf);
+            if(odpowiedzButtons.newOdpowiedz) odpowiedzButtons.newOdpowiedz.addEventListener('click', clearOdpowiedzForm);
+            if(odpowiedzFields.kod_pocztowy) odpowiedzFields.kod_pocztowy.addEventListener('input', handleOdpowiedzPostalCodeInput);
+
+            // === NOWE: Listenery dla szablonów podstaw prawnych ===
+            if(toggleLegalBasisTemplateEditorButton) toggleLegalBasisTemplateEditorButton.addEventListener('click', toggleLegalBasisTemplateEditor);
+            if(saveLegalBasisTemplateButton) saveLegalBasisTemplateButton.addEventListener('click', handleSaveLegalBasisTemplate);
+            if(clearLegalBasisTemplateFormButton) clearLegalBasisTemplateFormButton.addEventListener('click', clearLegalBasisTemplateForm);
+
 
             // === NOWE: Listenery dla Formularza Wsparcia ===
             if (supportFields.pan_pani) supportFields.pan_pani.addEventListener('change', updatePanPani2); // NOWY LISTENER
@@ -2965,6 +3617,47 @@
 
         // --- GŁÓWNA LOGIKA STARTOWA ---
 
+        // Funkcja do przełączania zakładek
+        function switchTab(tabName) {
+            //Synchronizuj dane przed przełączeniem
+            if (envelopeGeneratorTab.classList.contains('active')) {
+                // Nie ma potrzeby synchronizacji z kopert do innych
+            } else if (supportApplicationTab.classList.contains('active')) {
+                 syncSupportToEnvelope();
+            } else if (responseApplicationTab.classList.contains('active')) {
+                 syncResponseToEnvelope();
+            }
+
+            // Ukryj wszystkie zakładki
+            envelopeGeneratorTab.classList.add('hidden');
+            supportApplicationTab.classList.add('hidden');
+            responseApplicationTab.classList.add('hidden');
+            envelopeGeneratorTab.classList.remove('active');
+            supportApplicationTab.classList.remove('active');
+            responseApplicationTab.classList.remove('active');
+
+            // Deaktywuj wszystkie przyciski zakładek
+            tabButtonEnvelopes.classList.remove('active');
+            tabButtonSupport.classList.remove('active');
+            tabButtonResponse.classList.remove('active');
+
+            // Pokaż wybraną zakładkę i aktywuj przycisk
+            if (tabName === 'envelopes') {
+                envelopeGeneratorTab.classList.remove('hidden');
+                envelopeGeneratorTab.classList.add('active');
+                tabButtonEnvelopes.classList.add('active');
+            } else if (tabName === 'support') {
+                supportApplicationTab.classList.remove('hidden');
+                supportApplicationTab.classList.add('active');
+                tabButtonSupport.classList.add('active');
+            } else if (tabName === 'response') {
+                responseApplicationTab.classList.remove('hidden');
+                responseApplicationTab.classList.add('active');
+                tabButtonResponse.classList.add('active');
+            }
+        }
+
+
         // 1. Uruchom nasłuchiwacze UI
         initializeUIListeners();
         
@@ -3005,6 +3698,7 @@
                 loadTemplates();
                 loadLegalBasis(); // NOWE
                 loadAttachmentTemplates(); // NOWE
+                loadLegalBasisTemplates(); // NOWE
                 switchTab('envelopes'); // Domyślna zakładka po zalogowaniu
 
             } else {
