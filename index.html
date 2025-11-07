@@ -610,6 +610,13 @@
 
 
                         <h3 class="text-lg font-semibold mb-2 pt-4 border-t">ADRESAT (NA LIŚCIE)</h3>
+                        <div class="flex space-x-2 mb-2">
+                            <button id="manageInstitutionAddressesButton" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-300 transition-colors w-full">ZARZĄDZAJ ADRESAMI</button>
+                            <select id="selectInstitutionAddressDropdown" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-300 transition-colors w-full no-uppercase">
+                                <option value="">WYBIERZ ZAPISANY ADRES...</option>
+                                <!-- Opcje będą dodawane dynamicznie przez JS -->
+                            </select>
+                        </div>
                          <div>
                             <label for="odp_adresat" class="block text-sm font-medium text-gray-700">ADRESAT {ADRESAT}</label>
                             <input type="text" id="odp_adresat" placeholder="Np. SĄD REJONOWY W..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
@@ -771,6 +778,57 @@
     </div>
     <!-- KONIEC MODALA -->
 
+    <!-- NOWY MODAL: ZARZĄDZANIE ADRESAMI INSTYTUCJI -->
+    <div id="institutionAddressModalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+    <div id="institutionAddressModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-xl z-50 w-full max-w-lg hidden">
+        <h2 class="text-xl font-bold mb-4">ZARZĄDZAJ ADRESAMI INSTYTUCJI</h2>
+
+        <div id="institutionAddressMessageArea" class="h-6 text-sm font-medium text-red-600 text-center mb-2"></div>
+
+        <div class="space-y-4">
+            <input type="hidden" id="institutionAddressEditId">
+            <div>
+                <label for="institutionAddressName" class="block text-sm font-medium text-gray-700">NAZWA ROBOCZA (NP. "SĄD REJONOWY")</label>
+                <input type="text" id="institutionAddressName" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+            <hr/>
+            <div>
+                <label for="institutionAddressAdresat" class="block text-sm font-medium text-gray-700">ADRESAT</label>
+                <input type="text" id="institutionAddressAdresat" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+            <div>
+                <label for="institutionAddressAdresCz1" class="block text-sm font-medium text-gray-700">ADRES (LINIA 1)</label>
+                <input type="text" id="institutionAddressAdresCz1" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+            <div>
+                <label for="institutionAddressAdresCz2" class="block text-sm font-medium text-gray-700">ADRES (LINIA 2)</label>
+                <input type="text" id="institutionAddressAdresCz2" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-1">
+                    <label for="institutionAddressKodPocztowy" class="block text-sm font-medium text-gray-700">KOD POCZTOWY</label>
+                    <input type="text" id="institutionAddressKodPocztowy" placeholder="XX-XXX" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                </div>
+                <div class="col-span-2">
+                    <label for="institutionAddressPoczta" class="block text-sm font-medium text-gray-700">POCZTA</label>
+                    <input type="text" id="institutionAddressPoczta" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button id="saveInstitutionAddressButton" class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">ZAPISZ ADRES</button>
+                <button id="clearInstitutionAddressFormButton" class="w-auto bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">WYCZYŚĆ</button>
+            </div>
+        </div>
+
+        <h3 class="text-lg font-semibold mt-6 mb-2">ZAPISANE ADRESY</h3>
+        <div id="institutionAddressList" class="space-y-2 max-h-60 overflow-y-auto border p-2 rounded-md bg-gray-50">
+             <p class="text-gray-500 text-sm">ŁADOWANIE ADRESÓW...</p>
+        </div>
+
+        <button id="closeInstitutionAddressModalButton" class="mt-6 w-full bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors">ZAMKIJ</button>
+    </div>
+    <!-- KONIEC MODALA ADRESÓW -->
+
     <!-- NOWA: LISTA SUGESTII DLA ZAŁĄCZNIKÓW (UKRYTA) -->
     <datalist id="attachmentsDatalist"></datalist>
     <datalist id="supportPostOfficeList"></datalist> <!-- NOWA DATALISTA DLA WSPARCIA -->
@@ -897,13 +955,16 @@
         let attachmentsCollection; // NOWA: Referencja do szablonów załączników
         let odpowiedziCollection; // NOWA: Kolekcja dla odpowiedzi
         let legalBasisTemplatesCollection; // NOWA: Kolekcja dla szablonów podstaw prawnych
+        let institutionAddressesCollection; // NOWA: Kolekcja dla adresów instytucji
         
         let templatesSnapshotUnsubscribe = null;
         let attachmentsSnapshotUnsubscribe = null;
-        let legalBasisTemplatesSnapshotUnsubscribe = null; // NOWA
+        let legalBasisTemplatesSnapshotUnsubscribe = null;
+        let institutionAddressesSnapshotUnsubscribe = null; // NOWA
         let allTemplates = {};
         let allAttachmentTemplates = [];
-        let allLegalBasisTemplates = {}; // NOWA
+        let allLegalBasisTemplates = {};
+        let allInstitutionAddresses = {}; // NOWA
 
         // NOWE: Domyślne podstawy prawne
         let globalLegalBasis = {
@@ -1089,6 +1150,23 @@
         const clearLegalBasisTemplateFormButton = document.getElementById('clearLegalBasisTemplateFormButton');
         const legalBasisTemplateList = document.getElementById('legalBasisTemplateList');
 
+        // === NOWE: Elementy DOM - Modal Adresów Instytucji ===
+        const institutionAddressModalOverlay = document.getElementById('institutionAddressModalOverlay');
+        const institutionAddressModal = document.getElementById('institutionAddressModal');
+        const closeInstitutionAddressModalButton = document.getElementById('closeInstitutionAddressModalButton');
+        const institutionAddressMessageArea = document.getElementById('institutionAddressMessageArea');
+        const institutionAddressEditId = document.getElementById('institutionAddressEditId');
+        const institutionAddressNameInput = document.getElementById('institutionAddressName');
+        const institutionAddressAdresatInput = document.getElementById('institutionAddressAdresat');
+        const institutionAddressAdresCz1Input = document.getElementById('institutionAddressAdresCz1');
+        const institutionAddressAdresCz2Input = document.getElementById('institutionAddressAdresCz2');
+        const institutionAddressKodPocztowyInput = document.getElementById('institutionAddressKodPocztowy');
+        const institutionAddressPocztaInput = document.getElementById('institutionAddressPoczta');
+        const saveInstitutionAddressButton = document.getElementById('saveInstitutionAddressButton');
+        const clearInstitutionAddressFormButton = document.getElementById('clearInstitutionAddressFormButton');
+        const institutionAddressList = document.getElementById('institutionAddressList');
+        const manageInstitutionAddressesButton = document.getElementById('manageInstitutionAddressesButton');
+        const selectInstitutionAddressDropdown = document.getElementById('selectInstitutionAddressDropdown');
 
         // === NOWE: Elementy DOM - Formularz Wsparcia ===
         const supportFields = {
@@ -1251,6 +1329,13 @@
             odpowiedzMessageArea.textContent = text.toUpperCase();
             odpowiedzMessageArea.className = `h-6 text-sm font-medium ${isError ? 'text-red-600' : 'text-green-600'}`;
             setTimeout(() => { odpowiedzMessageArea.textContent = ''; }, 3000);
+        }
+
+        function showInstitutionAddressMessage(text, isError = false) {
+            if (!institutionAddressMessageArea) return;
+            institutionAddressMessageArea.textContent = text.toUpperCase();
+            institutionAddressMessageArea.className = `h-6 text-sm font-medium text-center ${isError ? 'text-red-600' : 'text-green-600'}`;
+            setTimeout(() => { institutionAddressMessageArea.textContent = ''; }, 3000);
         }
 
         // === NOWE: Funkcje formatowania "Title Case" ===
@@ -1575,6 +1660,166 @@
                 
                 inputs.uwagi_potwierdzenia.value = processedContent;
                 selectTemplateDropdown.value = ""; 
+            }
+        }
+
+        // --- NOWE Funkcje: Zarządzanie Adresami Instytucji ---
+        function openInstitutionAddressModal() {
+            institutionAddressModalOverlay.classList.remove('hidden');
+            institutionAddressModal.classList.remove('hidden');
+            clearInstitutionAddressForm();
+        }
+
+        function closeInstitutionAddressModal() {
+            institutionAddressModalOverlay.classList.add('hidden');
+            institutionAddressModal.classList.add('hidden');
+        }
+
+        function clearInstitutionAddressForm() {
+            institutionAddressNameInput.value = '';
+            institutionAddressAdresatInput.value = '';
+            institutionAddressAdresCz1Input.value = '';
+            institutionAddressAdresCz2Input.value = '';
+            institutionAddressKodPocztowyInput.value = '';
+            institutionAddressPocztaInput.value = '';
+            institutionAddressEditId.value = '';
+        }
+
+        async function loadInstitutionAddresses() {
+            if (!institutionAddressesCollection) return;
+            if (institutionAddressesSnapshotUnsubscribe) {
+                institutionAddressesSnapshotUnsubscribe();
+            }
+
+            institutionAddressesSnapshotUnsubscribe = onSnapshot(query(institutionAddressesCollection), (querySnapshot) => {
+                allInstitutionAddresses = {};
+                const addresses = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    addresses.push({ id: doc.id, ...data });
+                    allInstitutionAddresses[doc.id] = data;
+                });
+                addresses.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                populateInstitutionAddressList(addresses);
+                populateInstitutionAddressDropdown(addresses);
+            }, (error) => {
+                console.error("BŁĄD ŁADOWANIA ADRESÓW INSTYTUCJI: ", error);
+                if(institutionAddressList) institutionAddressList.innerHTML = '<p class="text-red-500 text-sm">BŁĄD ŁADOWANIA ADRESÓW.</p>';
+            });
+        }
+
+        function populateInstitutionAddressList(addresses) {
+            if (!institutionAddressList) return;
+            institutionAddressList.innerHTML = '';
+            if (addresses.length === 0) {
+                institutionAddressList.innerHTML = '<p class="text-gray-500 text-sm">BRAK ZAPISANYCH ADRESÓW.</p>';
+                return;
+            }
+
+            addresses.forEach(address => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-white rounded-md border';
+                div.innerHTML = `
+                    <span class="font-medium">${address.name}</span>
+                    <div class="space-x-2 flex-shrink-0">
+                        <button class="edit-institution-address-btn text-blue-600 hover:text-blue-800 text-sm font-medium" data-id="${address.id}">EDYTUJ</button>
+                        <button class="delete-institution-address-btn text-red-600 hover:text-red-800 text-sm font-medium" data-id="${address.id}">USUŃ</button>
+                    </div>
+                `;
+                institutionAddressList.appendChild(div);
+            });
+
+            institutionAddressList.querySelectorAll('.edit-institution-address-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleEditInstitutionAddress(btn.dataset.id));
+            });
+            institutionAddressList.querySelectorAll('.delete-institution-address-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleDeleteInstitutionAddress(btn.dataset.id));
+            });
+        }
+
+        function populateInstitutionAddressDropdown(addresses) {
+            if (!selectInstitutionAddressDropdown) return;
+            selectInstitutionAddressDropdown.innerHTML = '<option value="">WYBIERZ ZAPISANY ADRES...</option>';
+            addresses.forEach(address => {
+                const option = document.createElement('option');
+                option.value = address.id;
+                option.textContent = address.name;
+                selectInstitutionAddressDropdown.appendChild(option);
+            });
+        }
+
+        async function handleSaveInstitutionAddress() {
+            if (!institutionAddressesCollection) return;
+
+            const name = institutionAddressNameInput.value;
+            const adresat = institutionAddressAdresatInput.value;
+            const adres_cz1 = institutionAddressAdresCz1Input.value;
+            const adres_cz2 = institutionAddressAdresCz2Input.value;
+            const kod_pocztowy = institutionAddressKodPocztowyInput.value;
+            const poczta = institutionAddressPocztaInput.value;
+            const editId = institutionAddressEditId.value;
+
+            if (!name || !adresat || !adres_cz1 || !kod_pocztowy || !poczta) {
+                showInstitutionAddressMessage("NAZWA, ADRESAT, ADRES (LINIA 1), KOD I POCZTA SĄ WYMAGANE.", true);
+                return;
+            }
+
+            const data = { name, adresat, adres_cz1, adres_cz2, kod_pocztowy, poczta };
+
+            try {
+                if (editId) {
+                    const docRef = doc(institutionAddressesCollection, editId);
+                    await setDoc(docRef, data);
+                    showInstitutionAddressMessage("ADRES ZAKTUALIZOWANY", false);
+                } else {
+                    await addDoc(institutionAddressesCollection, data);
+                    showInstitutionAddressMessage("ADRES ZAPISANY", false);
+                }
+                clearInstitutionAddressForm();
+            } catch (error) {
+                console.error("BŁĄD ZAPISU ADRESU:", error);
+                showInstitutionAddressMessage("BŁĄD ZAPISU.", true);
+            }
+        }
+
+        function handleEditInstitutionAddress(id) {
+            const address = allInstitutionAddresses[id];
+            if (address) {
+                institutionAddressEditId.value = id;
+                institutionAddressNameInput.value = address.name;
+                institutionAddressAdresatInput.value = address.adresat;
+                institutionAddressAdresCz1Input.value = address.adres_cz1;
+                institutionAddressAdresCz2Input.value = address.adres_cz2;
+                institutionAddressKodPocztowyInput.value = address.kod_pocztowy;
+                institutionAddressPocztaInput.value = address.poczta;
+                showInstitutionAddressMessage("ZAŁADOWANO DO EDYCJI", false);
+            }
+        }
+
+        async function handleDeleteInstitutionAddress(id) {
+            if (!institutionAddressesCollection) return;
+            if (!confirm(`Czy na pewno chcesz usunąć adres "${allInstitutionAddresses[id]?.name}"?`)) return;
+            try {
+                const docRef = doc(institutionAddressesCollection, id);
+                await deleteDoc(docRef);
+                showInstitutionAddressMessage("ADRES USUNIĘTY", false);
+                clearInstitutionAddressForm();
+            } catch (error) {
+                console.error("BŁĄD USUWANIA ADRESU:", error);
+                showInstitutionAddressMessage("BŁĄD USUWANIA.", true);
+            }
+        }
+
+        function handleInstitutionAddressSelect() {
+            const selectedId = selectInstitutionAddressDropdown.value;
+            if (selectedId && allInstitutionAddresses[selectedId]) {
+                const address = allInstitutionAddresses[selectedId];
+                odpowiedzFields.adresat.value = address.adresat;
+                odpowiedzFields.adres_cz1.value = address.adres_cz1;
+                odpowiedzFields.adres_cz2.value = address.adres_cz2;
+                odpowiedzFields.kod_pocztowy.value = address.kod_pocztowy;
+                odpowiedzFields.poczta.value = address.poczta;
+                selectInstitutionAddressDropdown.value = "";
             }
         }
 
@@ -3546,6 +3791,13 @@
             if(saveLegalBasisTemplateButton) saveLegalBasisTemplateButton.addEventListener('click', handleSaveLegalBasisTemplate);
             if(clearLegalBasisTemplateFormButton) clearLegalBasisTemplateFormButton.addEventListener('click', clearLegalBasisTemplateForm);
 
+            // === NOWE: Listenery dla Modalu Adresów Instytucji ===
+            if(manageInstitutionAddressesButton) manageInstitutionAddressesButton.addEventListener('click', openInstitutionAddressModal);
+            if(closeInstitutionAddressModalButton) closeInstitutionAddressModalButton.addEventListener('click', closeInstitutionAddressModal);
+            if(institutionAddressModalOverlay) institutionAddressModalOverlay.addEventListener('click', closeInstitutionAddressModal);
+            if(saveInstitutionAddressButton) saveInstitutionAddressButton.addEventListener('click', handleSaveInstitutionAddress);
+            if(clearInstitutionAddressFormButton) clearInstitutionAddressFormButton.addEventListener('click', clearInstitutionAddressForm);
+            if(selectInstitutionAddressDropdown) selectInstitutionAddressDropdown.addEventListener('change', handleInstitutionAddressSelect);
 
             // === NOWE: Listenery dla Formularza Wsparcia ===
             if (supportFields.pan_pani) supportFields.pan_pani.addEventListener('change', updatePanPani2); // NOWY LISTENER
@@ -3687,6 +3939,12 @@
                 legalBasisDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'legal_basis');
                 // --- NOWE: SZABLONY ZAŁĄCZNIKÓW (PUBLICZNE) ---
                 attachmentsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'attachment_templates');
+                // --- NOWE: ADRESY INSTYTUCJI (PUBLICZNE) ---
+                institutionAddressesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'institution_addresses');
+                // --- NOWE: ODPOWIEDZI (PUBLICZNE) ---
+                odpowiedziCollection = collection(db, 'artifacts', appId, 'public', 'data', 'odpowiedzi');
+                // --- NOWE: SZABLONY PODSTAW PRAWNYCH (PUBLICZNE) ---
+                legalBasisTemplatesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'legal_basis_templates');
                 
                 
                 userEmailDisplay.textContent = user.isAnonymous ? "UŻYTKOWNIK ANONIMOWY" : user.email.toUpperCase();
@@ -3699,6 +3957,7 @@
                 loadLegalBasis(); // NOWE
                 loadAttachmentTemplates(); // NOWE
                 loadLegalBasisTemplates(); // NOWE
+                loadInstitutionAddresses(); // NOWE
                 switchTab('envelopes'); // Domyślna zakładka po zalogowaniu
 
             } else {
@@ -3709,21 +3968,33 @@
                 templatesCollection = null; 
                 postOfficesCollection = null; 
                 supportApplicationsCollection = null; // NOWE
-                legalBasisDocRef = null; // NOWE
-                attachmentsCollection = null; // NOWE
+                legalBasisDocRef = null;
+                attachmentsCollection = null;
+                odpowiedziCollection = null;
+                legalBasisTemplatesCollection = null;
+                institutionAddressesCollection = null;
 
                 if (templatesSnapshotUnsubscribe) {
                     templatesSnapshotUnsubscribe();
                     templatesSnapshotUnsubscribe = null;
                 }
-                // NOWE: Wyczyść listenera załączników
                 if (attachmentsSnapshotUnsubscribe) {
                     attachmentsSnapshotUnsubscribe();
                     attachmentsSnapshotUnsubscribe = null;
                 }
+                if (legalBasisTemplatesSnapshotUnsubscribe) {
+                    legalBasisTemplatesSnapshotUnsubscribe();
+                    legalBasisTemplatesSnapshotUnsubscribe = null;
+                }
+                if (institutionAddressesSnapshotUnsubscribe) {
+                    institutionAddressesSnapshotUnsubscribe();
+                    institutionAddressesSnapshotUnsubscribe = null;
+                }
 
-                allTemplates = {}; // Wyczyść cache
-                allAttachmentTemplates = []; // NOWE
+                allTemplates = {};
+                allAttachmentTemplates = [];
+                allLegalBasisTemplates = {};
+                allInstitutionAddresses = {};
 
                 appContainer.classList.add('hidden');
                 authContainer.classList.remove('hidden');
