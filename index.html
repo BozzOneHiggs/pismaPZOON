@@ -281,6 +281,15 @@
                         <!-- KONIEC MODYFIKACJI -->
 
 
+                        <!-- KONIEC MODYFIKACJI -->
+
+
+                        <!-- NOWE POLE DOTYCZY -->
+                        <div>
+                            <label for="dotyczy_potwierdzenia" class="block text-sm font-medium text-gray-700">DOTYCZY (DLA POTWIERDZENIA ODBIORU)</label>
+                            <input type="text" id="dotyczy_potwierdzenia" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 no-uppercase">
+                        </div>
+
                         <!-- ZMIANA: DODANO WRAPPER I PRZYCISKI DO SZABLONÓW -->
                         <div>
                             <label for="uwagi_potwierdzenia" class="block text-sm font-medium text-gray-700">UWAGI (DLA POTWIERDZENIA ODBIORU)</label>
@@ -1006,7 +1015,8 @@
             adres_cz2: document.getElementById('adres_cz2'),
             kod_pocztowy: document.getElementById('kod_pocztowy'),
             poczta: document.getElementById('poczta'),
-            uwagi_potwierdzenia: document.getElementById('uwagi_potwierdzenia') 
+            uwagi_potwierdzenia: document.getElementById('uwagi_potwierdzenia'),
+            dotyczy_potwierdzenia: document.getElementById('dotyczy_potwierdzenia')
         };
         
         const previews = {
@@ -2013,7 +2023,8 @@
                 adres_cz2: inputs.adres_cz2.value.toUpperCase(),
                 kod_pocztowy: inputs.kod_pocztowy.value.toUpperCase(),
                 poczta: inputs.poczta.value.toUpperCase(),
-                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value, 
+                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value,
+                dotyczy_potwierdzenia: inputs.dotyczy_potwierdzenia.value,
                 timestamp: new Date().toISOString()
             };
 
@@ -2147,7 +2158,18 @@
             });
 
             const adresCz1Content = data.adres_cz1.trim() || ""; 
-            const uwagiContent = data.uwagi_potwierdzenia.trim() ? `[${data.uwagi_potwierdzenia}]` : "";
+
+            const uwagi = (data.uwagi_potwierdzenia || "").trim();
+            const dotyczy = (data.dotyczy_potwierdzenia || "").trim();
+            let combinedText = "";
+            if (uwagi && dotyczy) {
+                combinedText = `${uwagi}; ${dotyczy}`;
+            } else if (uwagi) {
+                combinedText = uwagi;
+            } else if (dotyczy) {
+                combinedText = dotyczy;
+            }
+            const uwagiContent = combinedText ? `[${combinedText}]` : "";
             
             const contentStack = [
                 createAbsolutePosition(data.adresat, currentSettings.recAdresatTop, currentSettings.recAdresatLeft, { bold: true }),
@@ -2220,7 +2242,8 @@
                 adres_cz2: inputs.adres_cz2.value.toUpperCase(),
                 kod_pocztowy: inputs.kod_pocztowy.value.toUpperCase(),
                 poczta: inputs.poczta.value.toUpperCase(),
-                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value 
+                uwagi_potwierdzenia: inputs.uwagi_potwierdzenia.value,
+                dotyczy_potwierdzenia: inputs.dotyczy_potwierdzenia.value
             };
             
             if (!data.numer_sprawy) {
