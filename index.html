@@ -328,6 +328,8 @@
                         <div>
                             <label for="bulkCaseNumbers" class="block text-sm font-medium text-gray-700">NUMERY SPRAW (JEDEN NUMER NA LINIĘ)</label>
                             <textarea id="bulkCaseNumbers" rows="5" placeholder="Wpisz numery spraw (np. AB/123/2025)..." class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 uppercase"></textarea>
+                            <!-- NOWY KONTENER LISTY -->
+                            <div id="bulkListContainer" class="mt-2 space-y-1 max-h-60 overflow-y-auto border border-gray-200 rounded-md bg-gray-50 hidden p-2"></div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 pt-2">
@@ -3887,6 +3889,51 @@
         }
 
 
+        // --- NOWE FUNKCJE: INTERAKTYWNA LISTA MASOWA ---
+        function updateBulkList() {
+            if (!bulkCaseNumbersInput || !document.getElementById('bulkListContainer')) return;
+            const container = document.getElementById('bulkListContainer');
+            const rawText = bulkCaseNumbersInput.value.toUpperCase();
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+            container.innerHTML = '';
+
+            if (lines.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            lines.forEach(num => {
+                const btn = document.createElement('button');
+                btn.type = 'button'; // Ważne, żeby nie submitował formularza
+                btn.className = 'w-full text-left px-3 py-2 bg-white hover:bg-purple-100 border border-gray-200 rounded-md text-sm font-medium text-gray-700 transition-colors flex justify-between items-center group';
+                btn.innerHTML = `
+                    <span>${num}</span>
+                    <span class="text-xs text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">WCZYTAJ &rarr;</span>
+                `;
+                btn.onclick = () => loadFromBulkList(num);
+                container.appendChild(btn);
+            });
+        }
+
+        async function loadFromBulkList(num) {
+            // Ustaw numer w polu wyszukiwania
+            if (searchInput) {
+                searchInput.value = num;
+            }
+            // Wywołaj wyszukiwanie
+            await handleSearch();
+
+            // Opcjonalnie: Przewiń do formularza
+            const formElement = document.getElementById('envelopeForm');
+            if (formElement) {
+                formElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+
         // Funkcja inicjująca nasłuchiwacze zdarzeń UI
         function initializeUIListeners() {
             // Generowanie PDF (Koperty)
@@ -3895,7 +3942,10 @@
             if (bulkPrintButton) bulkPrintButton.addEventListener('click', handleGenerateMultiplePDF);
             if (bulkReceiptsPrintButton) bulkReceiptsPrintButton.addEventListener('click', handleGenerateMultipleReceiptsPDF);
 
-            if (bulkCaseNumbersInput) bulkCaseNumbersInput.addEventListener('input', convertToUppercase);
+            if (bulkCaseNumbersInput) {
+                bulkCaseNumbersInput.addEventListener('input', convertToUppercase);
+                bulkCaseNumbersInput.addEventListener('input', updateBulkList);
+            }
 
             // Obsługa panelu slide-in
             if (toggleSettingsButton) toggleSettingsButton.addEventListener('click', toggleSettings);
